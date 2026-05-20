@@ -5,21 +5,25 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   const isDashboard = pathname.startsWith('/dashboard')
+  const isAdmin     = pathname.startsWith('/admin')
   const isAuth      = pathname.startsWith('/login') || pathname.startsWith('/signup')
 
-  // Zustand persists auth state in localStorage under 'nexvpn-auth'.
-  // Middleware runs on the Edge where localStorage isn't available, so
-  // we check the cookie that the client writes on login (set in api.ts interceptor).
-  // For a lightweight check we look for the Zustand persisted key via a cookie.
-  // The real guard is the backend rejecting requests with expired/missing tokens.
   const token = request.cookies.get('nexvpn-token')?.value
+  const role  = request.cookies.get('nexvpn-role')?.value
 
-  if (isDashboard && !token) {
+  // Not logged in → redirect to login
+  if ((isDashboard || isAdmin) && !token) {
     const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('from', pathname)
     return NextResponse.redirect(loginUrl)
   }
 
+  // Logged in but not admin → redirect to dashboard
+  if (isAdmin && role !== 'ADMIN') {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+
+  // Already logged in → redirect away from auth pages
   if (isAuth && token) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
@@ -28,5 +32,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/login', '/signup'],
+  matcher: ['/dashboard/:path*', '/admin/:path*', '/login', '/signup'],
 }
