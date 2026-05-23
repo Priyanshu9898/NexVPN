@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id               String               @id @default(cuid())
+  email            String               @unique
+  name             String
+  passwordHash     String?
+  googleId         String?              @unique
+  role             Role                 @default(USER)
+  banned           Boolean              @default(false)
+  plan             String               @default("free")
+  stripeCustomerId String?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  peers            Peer[]
+  subscriptions    Subscription[]
+  auditLogs        AuditLog[]
+  passwordResets   PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Peer {
+  id                  String    @id @default(cuid())
+  userId              String
+  nodeId              String
+  publicKey           String    @unique
+  privateKeyEncrypted String
+  ipAddress           String    @unique
+  createdAt           DateTime  @default(now())
+  revokedAt           DateTime?
+  user                User      @relation(fields: [userId], references: [id])
+  node                Node      @relation(fields: [nodeId], references: [id])
+}
+
+model Node {
+  id            String   @id @default(cuid())
+  region        String
+  city          String
+  ip            String   @unique
+  status        String   @default("online")
+  loadPercent   Float    @default(0)
+  lastHeartbeat DateTime @default(now())
+  createdAt     DateTime @default(now())
+  peers         Peer[]
+}
+
+model Subscription {
+  id                   String    @id @default(cuid())
+  userId               String
+  stripeSubscriptionId String?   @unique
+  status               String    @default("active")
+  plan                 String    @default("free")
+  currentPeriodEnd     DateTime?
+  createdAt            DateTime  @default(now())
+  user                 User      @relation(fields: [userId], references: [id])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String
+  metadata  Json?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}

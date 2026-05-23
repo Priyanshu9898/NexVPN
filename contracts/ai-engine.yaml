@@ -1,0 +1,107 @@
+openapi: 3.1.0
+info:
+  title: NexVPN AI Routing Engine API
+  version: 1.0.0
+  description: >
+    AI Engine Agent owns this spec. Backend Agent reads it to know how to call the AI service.
+    This service runs internally at AI_ENGINE_URL (default: http://localhost:8000).
+    It is NOT exposed to the public internet — only the Backend Agent calls it.
+
+servers:
+  - url: http://localhost:8000
+    description: Local AI engine
+
+paths:
+  /recommend:
+    get:
+      summary: Get ranked server recommendations for a user
+      parameters:
+        - in: query
+          name: userId
+          required: true
+          schema: { type: string }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 5 }
+      responses:
+        '200':
+          description: Ranked recommendations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  recommendations:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        nodeId: { type: string }
+                        score: { type: number, minimum: 0, maximum: 1 }
+                        reasoning: { type: string }
+                        signals:
+                          type: object
+                          properties:
+                            latencyScore: { type: number }
+                            loadScore: { type: number }
+                            reputationScore: { type: number }
+                            contextScore: { type: number }
+                  userContext: { type: string }
+                  generatedAt: { type: string, format: date-time }
+
+  /nodes/{nodeId}/metrics:
+    get:
+      summary: Get latest metrics for a specific node
+      parameters:
+        - in: path
+          name: nodeId
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Node metrics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  nodeId: { type: string }
+                  latencyMs: { type: number }
+                  bandwidthMbps: { type: number }
+                  loadPercent: { type: number }
+                  reputationScore: { type: number }
+                  isThrottled: { type: boolean }
+                  measuredAt: { type: string, format: date-time }
+
+  /nodes/metrics:
+    post:
+      summary: Push heartbeat metrics from a node (called by Backend Agent)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nodeId, latencyMs, loadPercent]
+              properties:
+                nodeId: { type: string }
+                latencyMs: { type: number }
+                loadPercent: { type: number }
+                bandwidthMbps: { type: number }
+                connectionCount: { type: integer }
+      responses:
+        '200':
+          description: Metrics recorded
+
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, enum: [ok] }

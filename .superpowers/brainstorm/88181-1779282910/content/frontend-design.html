@@ -1,0 +1,90 @@
+<h2>Section 3 — Frontend Changes</h2>
+<p class="subtitle">New pages + admin panel layout options</p>
+
+<div class="section">
+  <h3>Auth Page Changes (Login + Signup)</h3>
+  <div class="split">
+    <div class="mockup">
+      <div class="mockup-header">Before</div>
+      <div class="mockup-body" style="display:flex;flex-direction:column;gap:8px;align-items:center">
+        <div class="mock-input" style="width:100%">Email</div>
+        <div class="mock-input" style="width:100%">Password</div>
+        <div class="mock-button" style="width:100%;background:linear-gradient(135deg,#00D4FF,#0099CC);color:#05080D">Sign In</div>
+        <div style="color:#666;font-size:11px">── OR ──</div>
+        <div class="mock-button" style="width:100%;background:rgba(22,32,48,0.4);border:1px solid rgba(0,212,255,0.2)">🐙 Continue with GitHub</div>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-header">After</div>
+      <div class="mockup-body" style="display:flex;flex-direction:column;gap:8px;align-items:center">
+        <div class="mock-input" style="width:100%">Email</div>
+        <div class="mock-input" style="width:100%">Password</div>
+        <div style="text-align:right;width:100%;font-size:11px;color:#00D4FF;cursor:pointer">Forgot password?</div>
+        <div class="mock-button" style="width:100%;background:linear-gradient(135deg,#00D4FF,#0099CC);color:#05080D">Sign In</div>
+        <div style="color:#666;font-size:11px">── OR ──</div>
+        <div class="mock-button" style="width:100%;background:rgba(22,32,48,0.4);border:1px solid rgba(0,212,255,0.2)">🔵 Continue with Google</div>
+      </div>
+    </div>
+  </div>
+  <p class="subtitle" style="margin-top:8px">Forgot password link added. GitHub → Google. Same glassmorphism card design.</p>
+</div>
+
+<div class="section">
+  <h3>New Pages</h3>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <div class="mockup">
+      <div class="mockup-header">/forgot-password</div>
+      <div class="mockup-body" style="display:flex;flex-direction:column;gap:8px;align-items:center">
+        <div style="font-size:12px;color:#aaa;text-align:center">Enter your email and we'll send a reset link</div>
+        <div class="mock-input" style="width:100%">Email address</div>
+        <div class="mock-button" style="width:100%;background:linear-gradient(135deg,#00D4FF,#0099CC);color:#05080D">Send Reset Link</div>
+        <div style="font-size:11px;color:#666">← Back to login</div>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-header">/reset-password?token=…</div>
+      <div class="mockup-body" style="display:flex;flex-direction:column;gap:8px;align-items:center">
+        <div style="font-size:12px;color:#aaa;text-align:center">Choose a new password</div>
+        <div class="mock-input" style="width:100%">New password</div>
+        <div class="mock-input" style="width:100%">Confirm password</div>
+        <div class="mock-button" style="width:100%;background:linear-gradient(135deg,#00D4FF,#0099CC);color:#05080D">Reset Password</div>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-header">/auth/callback (invisible)</div>
+      <div class="mockup-body" style="display:flex;flex-direction:column;gap:8px;align-items:center">
+        <div style="font-size:12px;color:#aaa;text-align:center">Handles Google OAuth redirect. Extracts token from URL, stores in Zustand + cookie, redirects to /dashboard. User never sees this page.</div>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-header">/admin (admin only)</div>
+      <div class="mockup-body" style="display:flex;flex-direction:column;gap:8px">
+        <div style="font-size:12px;color:#aaa">Protected by middleware — 403 redirect if not admin</div>
+        <div style="font-size:12px;color:#00D4FF">/admin/users</div>
+        <div style="font-size:12px;color:#00D4FF">/admin/nodes</div>
+        <div style="font-size:12px;color:#00D4FF">/admin/audit-logs</div>
+        <div style="font-size:12px;color:#00D4FF">/admin/subscriptions</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Admin Panel Layout — which style?</h3>
+  <div class="options">
+    <div class="option" data-choice="sidebar" onclick="toggleSelect(this)">
+      <div class="letter">A</div>
+      <div class="content">
+        <h3>Sidebar + Content (Recommended)</h3>
+        <p>Left sidebar with admin nav links, main content area on right. Same pattern as the existing dashboard sidebar. Consistent, familiar.</p>
+      </div>
+    </div>
+    <div class="option" data-choice="tabs" onclick="toggleSelect(this)">
+      <div class="letter">B</div>
+      <div class="content">
+        <h3>Top Tab Bar</h3>
+        <p>Horizontal tabs across the top: Users | Nodes | Audit Logs | Subscriptions. Simpler, all content visible at once.</p>
+      </div>
+    </div>
+  </div>
+</div>

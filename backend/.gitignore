@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Prisma generated client (regenerated on migrate)
+prisma/migrations/**/migration_lock.toml
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+
+# TypeScript cache
+*.tsbuildinfo

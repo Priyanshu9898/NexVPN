@@ -1,0 +1,261 @@
+openapi: 3.1.0
+info:
+  title: NexVPN Management API
+  version: 1.0.0
+  description: >
+    Backend Agent owns this spec. Frontend Agent reads it to know what endpoints exist.
+    AI Engine Agent reads it to understand how routing recommendations are consumed.
+    When Backend Agent adds/changes an endpoint, it MUST update this file.
+
+servers:
+  - url: http://localhost:3001/api/v1
+    description: Local development
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id: { type: string }
+        email: { type: string }
+        name: { type: string }
+        plan: { type: string, enum: [free, pro, enterprise] }
+        createdAt: { type: string, format: date-time }
+
+    VPNNode:
+      type: object
+      properties:
+        id: { type: string }
+        region: { type: string }
+        city: { type: string }
+        ip: { type: string }
+        status: { type: string, enum: [online, offline, degraded] }
+        loadPercent: { type: number }
+        latencyMs: { type: number }
+        lastHeartbeat: { type: string, format: date-time }
+
+    Peer:
+      type: object
+      properties:
+        id: { type: string }
+        userId: { type: string }
+        nodeId: { type: string }
+        publicKey: { type: string }
+        ipAddress: { type: string }
+        createdAt: { type: string, format: date-time }
+        revokedAt: { type: string, format: date-time, nullable: true }
+
+    Subscription:
+      type: object
+      properties:
+        id: { type: string }
+        status: { type: string, enum: [active, canceled, past_due, trialing] }
+        plan: { type: string, enum: [free, pro, enterprise] }
+        currentPeriodEnd: { type: string, format: date-time, nullable: true }
+
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+        code: { type: string }
+        statusCode: { type: number }
+
+paths:
+  /auth/register:
+    post:
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name: { type: string }
+                email: { type: string, format: email }
+                password: { type: string, minLength: 8 }
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      token: { type: string }
+                      refreshToken: { type: string }
+                      user: { $ref: '#/components/schemas/User' }
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '409':
+          description: Email already exists
+
+  /auth/login:
+    post:
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string }
+                password: { type: string }
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      token: { type: string }
+                      refreshToken: { type: string }
+                      user: { $ref: '#/components/schemas/User' }
+        '401':
+          description: Invalid credentials
+
+  /auth/refresh:
+    post:
+      summary: Refresh JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken: { type: string }
+      responses:
+        '200':
+          description: New token issued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      token: { type: string }
+
+  /nodes:
+    get:
+      summary: List all VPN nodes
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: List of nodes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/VPNNode' }
+
+  /peers:
+    get:
+      summary: List current user's peers
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: List of peers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Peer' }
+    post:
+      summary: Provision a new peer (WireGuard config)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nodeId]
+              properties:
+                nodeId: { type: string }
+      responses:
+        '201':
+          description: Peer provisioned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      peer: { $ref: '#/components/schemas/Peer' }
+                      configFile: { type: string, description: WireGuard .conf file content }
+        '501':
+          description: Not yet implemented
+
+  /peers/{id}:
+    delete:
+      summary: Revoke a peer
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Peer revoked
+        '404':
+          description: Peer not found
+
+  /users/me:
+    get:
+      summary: Get current user profile
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/User' }
+
+  /subscriptions/me:
+    get:
+      summary: Get current user subscription
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Subscription details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Subscription' }

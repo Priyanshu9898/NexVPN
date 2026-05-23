@@ -1,0 +1,67 @@
+<h2>Section 2 — Backend Auth Flows</h2>
+<p class="subtitle">Three flows: Google OAuth, Forgot Password, and RBAC middleware</p>
+
+<div class="section">
+  <h3>🔵 Google OAuth Flow</h3>
+  <div class="mockup">
+    <div class="mockup-header">OAuth Dance</div>
+    <div class="mockup-body" style="font-family:monospace;font-size:13px;line-height:2">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;margin-bottom:12px">
+        <div style="background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);border-radius:8px;padding:8px;font-weight:bold">Browser</div>
+        <div style="background:rgba(0,255,157,0.1);border:1px solid rgba(0,255,157,0.3);border-radius:8px;padding:8px;font-weight:bold">Fastify Backend</div>
+        <div style="background:rgba(240,165,0,0.1);border:1px solid rgba(240,165,0,0.3);border-radius:8px;padding:8px;font-weight:bold">Google</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;font-size:12px">
+        <div style="display:flex;align-items:center;gap:8px"><span style="color:#00D4FF;width:200px">GET /auth/google</span><span style="color:#666">→</span><span style="color:#00FF9D;width:200px">redirect to Google</span><span style="color:#666">→</span><span style="color:#F0A500">consent screen</span></div>
+        <div style="display:flex;align-items:center;gap:8px"><span style="color:#F0A500;width:200px">user approves</span><span style="color:#666">→</span><span style="color:#00FF9D;width:200px">GET /auth/google/callback?code=…</span></div>
+        <div style="display:flex;align-items:center;gap:8px;padding-left:208px"><span style="color:#666">→</span><span style="color:#F0A500;width:200px">exchange code for profile</span></div>
+        <div style="display:flex;align-items:center;gap:8px;padding-left:208px"><span style="color:#00FF9D">upsert user in DB (create or find by googleId)</span></div>
+        <div style="display:flex;align-items:center;gap:8px;padding-left:208px"><span style="color:#00FF9D">issue JWT + refresh token</span></div>
+        <div style="display:flex;align-items:center;gap:8px;padding-left:208px"><span style="color:#666">→</span><span style="color:#00D4FF">redirect to /auth/callback?token=… on frontend</span></div>
+        <div style="display:flex;align-items:center;gap:8px"><span style="color:#00D4FF">store token, redirect to /dashboard</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>🔴 Forgot Password Flow</h3>
+  <div class="mockup">
+    <div class="mockup-header">Reset Dance</div>
+    <div class="mockup-body" style="font-family:monospace;font-size:12px;line-height:2">
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <div><span style="color:#00D4FF">POST /auth/forgot-password</span> <span style="color:#666">{ email }</span></div>
+        <div style="padding-left:20px;color:#00FF9D">→ generate 32-byte random token</div>
+        <div style="padding-left:20px;color:#00FF9D">→ store bcrypt(token) + expiresAt (1hr) in PasswordResetToken table</div>
+        <div style="padding-left:20px;color:#00FF9D">→ send email via Nodemailer: <span style="color:#F0A500">nexvpn.com/reset-password?token=RAW_TOKEN</span></div>
+        <div style="padding-left:20px;color:#666">→ always return 200 (don't leak whether email exists)</div>
+        <div style="margin-top:8px"><span style="color:#00D4FF">POST /auth/reset-password</span> <span style="color:#666">{ token, newPassword }</span></div>
+        <div style="padding-left:20px;color:#00FF9D">→ find PasswordResetToken where used=false AND expiresAt > now</div>
+        <div style="padding-left:20px;color:#00FF9D">→ bcrypt.compare(token, tokenHash)</div>
+        <div style="padding-left:20px;color:#00FF9D">→ update user passwordHash, mark token used=true</div>
+        <div style="padding-left:20px;color:#00FF9D">→ return new JWT pair (auto-login after reset)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>🟢 RBAC Middleware</h3>
+  <div class="mockup">
+    <div class="mockup-header">Role Guard</div>
+    <div class="mockup-body" style="font-family:monospace;font-size:12px;line-height:1.8">
+      <div style="color:#666;margin-bottom:8px">JWT payload now includes role:</div>
+      <div style="color:#F0A500">{ sub, email, plan, <strong style="color:#00FF9D">role: "admin" | "user"</strong> }</div>
+      <div style="margin-top:12px;color:#666">Two middleware layers:</div>
+      <div style="margin-top:6px"><span style="color:#00D4FF">authenticate</span> → verifies JWT, attaches nexvpnUser (existing)</div>
+      <div><span style="color:#00FF9D">requireAdmin</span> → checks nexvpnUser.role === "admin", returns 403 if not</div>
+      <div style="margin-top:10px;color:#666">Admin routes sit behind both:</div>
+      <div style="color:#F0A500">preHandler: [authenticate, requireAdmin]</div>
+      <div style="margin-top:10px;color:#666">New route prefix:</div>
+      <div style="color:#00D4FF">/api/v1/admin/users</div>
+      <div style="color:#00D4FF">/api/v1/admin/nodes</div>
+      <div style="color:#00D4FF">/api/v1/admin/audit-logs</div>
+      <div style="color:#00D4FF">/api/v1/admin/subscriptions</div>
+    </div>
+  </div>
+</div>
