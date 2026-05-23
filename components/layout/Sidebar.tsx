@@ -1,8 +1,9 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { LayoutGrid, Globe, Activity, Settings } from 'lucide-react'
+import { usePathname, useRouter } from 'next/navigation'
+import { LayoutGrid, Globe, Activity, Settings, LogOut } from 'lucide-react'
+import { useAuthStore } from '@/store/auth'
 
 const navLinks = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutGrid },
@@ -11,21 +12,30 @@ const navLinks = [
   { href: '/settings',  label: 'Settings',  icon: Settings },
 ]
 
-// Hardcoded as disconnected for now — will be driven by global VPN state later
 const IS_CONNECTED = false
-const USER_EMAIL   = 'user@nexvpn.io'
-const USER_PLAN    = 'FREE'
-const USER_INITIALS = 'NX'
 
 export default function Sidebar() {
   const pathname = usePathname()
+  const router = useRouter()
+  const { user, logout } = useAuthStore()
+
+  const userEmail    = user?.email ?? 'user@nexvpn.io'
+  const userPlan     = user?.plan  ?? 'FREE'
+  const userInitials = user?.name
+    ? user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
+    : 'NX'
+
+  function handleLogout() {
+    logout()
+    router.push('/login')
+  }
 
   return (
     <aside
       className="flex flex-col"
       style={{
         width: '240px',
-        minHeight: '100vh',
+        height: '100%',
         background: 'var(--bg-surface)',
         borderRight: '1px solid var(--cyan-border)',
         flexShrink: 0,
@@ -157,11 +167,14 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* ── User Info ────────────────────────────────────── */}
+      {/* ── User Info + Logout ───────────────────────────── */}
       <div
         style={{
           padding: '16px 12px',
           borderTop: '1px solid var(--cyan-border)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
         }}
       >
         <div
@@ -189,7 +202,7 @@ export default function Sidebar() {
               flexShrink: 0,
             }}
           >
-            {USER_INITIALS}
+            {userInitials}
           </div>
 
           {/* Email + plan */}
@@ -205,7 +218,7 @@ export default function Sidebar() {
                 maxWidth: '110px',
               }}
             >
-              {USER_EMAIL}
+              {userEmail}
             </span>
             <span
               className="font-data uppercase"
@@ -220,10 +233,43 @@ export default function Sidebar() {
                 alignSelf: 'flex-start',
               }}
             >
-              {USER_PLAN}
+              {userPlan}
             </span>
           </div>
         </div>
+
+        {/* Logout button */}
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 font-display transition-all duration-150"
+          style={{
+            width: '100%',
+            padding: '10px 12px',
+            borderRadius: '8px',
+            fontSize: '12px',
+            fontWeight: 500,
+            letterSpacing: '0.08em',
+            color: 'var(--text-muted)',
+            background: 'transparent',
+            border: '1px solid transparent',
+            cursor: 'pointer',
+          }}
+          onMouseEnter={(e) => {
+            const el = e.currentTarget
+            el.style.background = 'rgba(255,68,85,0.08)'
+            el.style.border = '1px solid rgba(255,68,85,0.25)'
+            el.style.color = 'var(--red)'
+          }}
+          onMouseLeave={(e) => {
+            const el = e.currentTarget
+            el.style.background = 'transparent'
+            el.style.border = '1px solid transparent'
+            el.style.color = 'var(--text-muted)'
+          }}
+        >
+          <LogOut size={15} strokeWidth={1.8} style={{ flexShrink: 0 }} />
+          <span>SIGN OUT</span>
+        </button>
       </div>
     </aside>
   )
