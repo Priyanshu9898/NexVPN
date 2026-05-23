@@ -29,3 +29,11 @@ logs/
 *.pfx
 privatekey
 publickey
+
+# Claude / Superpowers tooling
+.claude/
+.superpowers/
+.playwright-mcp/
+docs/superpowers/
+CLAUDE.md
+AGENTS.md
