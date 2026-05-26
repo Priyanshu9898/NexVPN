@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect } from 'react'
+import { Suspense, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuthStore } from '@/store/auth'
 
-export default function AuthCallbackPage() {
+function CallbackHandler() {
   const router = useRouter()
   const params = useSearchParams()
   const { setSession } = useAuthStore()
@@ -33,26 +33,33 @@ export default function AuthCallbackPage() {
     }
   }, [params, router, setSession])
 
+  return null
+}
+
+export default function AuthCallbackPage() {
   return (
     <div style={{
-      minHeight: '100vh',
+      minHeight: '100dvh',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      background: 'var(--bg-base)',
+      background: 'var(--bg)',
     }}>
+      <Suspense>
+        <CallbackHandler />
+      </Suspense>
       <div style={{ textAlign: 'center' }}>
         <div style={{
           width: 40,
           height: 40,
-          border: '3px solid rgba(0,212,255,0.2)',
-          borderTop: '3px solid #00D4FF',
+          border: '3px solid var(--violet-dim)',
+          borderTop: `3px solid var(--violet)`,
           borderRadius: '50%',
           animation: 'spin 1s linear infinite',
           margin: '0 auto 16px',
         }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        <p style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-outfit)' }}>
+        <p style={{ color: 'var(--text-2)', fontFamily: 'var(--font-manrope)', fontSize: 14 }}>
           Signing you in…
         </p>
       </div>

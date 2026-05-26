@@ -1,25 +1,25 @@
 import type { Metadata } from 'next'
-import { Syne, Space_Mono, Outfit } from 'next/font/google'
+import { Bebas_Neue, Manrope, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 
-const syne = Syne({
+const bebasNeue = Bebas_Neue({
   subsets: ['latin'],
-  variable: '--font-syne',
-  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-bebas',
+  weight: ['400'],
   display: 'swap',
 })
 
-const spaceMono = Space_Mono({
+const manrope = Manrope({
   subsets: ['latin'],
-  variable: '--font-space-mono',
-  weight: ['400', '700'],
+  variable: '--font-manrope',
+  weight: ['300', '400', '500', '600', '700', '800'],
   display: 'swap',
 })
 
-const outfit = Outfit({
+const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
-  variable: '--font-outfit',
-  weight: ['300', '400', '500', '600'],
+  variable: '--font-jetbrains',
+  weight: ['400', '500', '600', '700'],
   display: 'swap',
 })
 
@@ -31,8 +31,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`dark ${syne.variable} ${spaceMono.variable} ${outfit.variable}`}>
-      <body className="font-sans antialiased">{children}</body>
+    <html
+      lang="en"
+      className={`dark ${bebasNeue.variable} ${manrope.variable} ${jetbrainsMono.variable}`}
+    >
+      <body className="antialiased" style={{ fontFamily: 'var(--font-manrope), system-ui, sans-serif' }}>
+        {children}
+      </body>
     </html>
   )
 }

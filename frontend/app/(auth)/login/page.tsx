@@ -3,16 +3,15 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import dynamic from 'next/dynamic'
 import Link from 'next/link'
-import { Eye, EyeOff, ArrowRight, AlertCircle, Loader2 } from 'lucide-react'
+import { Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
 
-const FloatingParticles = dynamic(() => import('@/components/3d/FloatingParticles'), { ssr: false })
+/* ── Shared helpers ───────────────────────────────────────── */
 
-function GoogleIcon({ size = 16 }: { size?: number }) {
+function GoogleIcon() {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+    <svg width={18} height={18} viewBox="0 0 24 24" aria-hidden="true" style={{ flexShrink: 0 }}>
       <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
       <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
       <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
@@ -21,25 +20,272 @@ function GoogleIcon({ size = 16 }: { size?: number }) {
   )
 }
 
-const item = {
-  hidden: { opacity: 0, y: 16 },
-  show:   { opacity: 1, y: 0,  transition: { duration: 0.45, ease: 'easeOut' as const } },
+const inputBase: React.CSSProperties = {
+  width: '100%',
+  background: 'var(--elevated)',
+  border: '1px solid var(--app-border)',
+  borderRadius: 'var(--r-md)',
+  padding: '12px 16px',
+  color: 'var(--text)',
+  fontFamily: 'var(--font-manrope)',
+  fontSize: '14px',
+  outline: 'none',
+  transition: 'border-color 0.2s, box-shadow 0.2s',
 }
 
-const container = {
-  hidden: {},
-  show:   { transition: { staggerChildren: 0.07, delayChildren: 0.2 } },
+const inputFocused: React.CSSProperties = {
+  borderColor: 'var(--violet-border)',
+  boxShadow: '0 0 0 3px var(--violet-dim)',
 }
+
+const labelStyle: React.CSSProperties = {
+  display: 'block',
+  fontFamily: 'var(--font-jetbrains)',
+  fontSize: '10px',
+  textTransform: 'uppercase',
+  letterSpacing: '0.1em',
+  color: 'var(--text-2)',
+  marginBottom: 6,
+}
+
+/* ── Animation variants ───────────────────────────────────── */
+
+const formContainer = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.07, delayChildren: 0.25 } },
+}
+
+const formItem = {
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: 'easeOut' as const } },
+}
+
+const leftContent = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.1, delayChildren: 0.15 } },
+}
+
+const leftItem = {
+  hidden: { opacity: 0, x: -24 },
+  show: { opacity: 1, x: 0, transition: { duration: 0.5, ease: 'easeOut' as const } },
+}
+
+/* ── SecurityRings decorative component ─────────────────── */
+
+function SecurityRings() {
+  return (
+    <div style={{ position: 'relative', width: 200, height: 200, margin: '0 auto' }}>
+      {/* Outer ring */}
+      <motion.div
+        animate={{ opacity: [0.2, 0.5, 0.2], scale: [1, 1.04, 1] }}
+        transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+        style={{
+          position: 'absolute', inset: 0,
+          borderRadius: '50%',
+          border: '1px solid var(--violet-border)',
+          boxShadow: '0 0 30px rgba(124,92,255,0.08)',
+        }}
+      />
+      {/* Mid ring */}
+      <motion.div
+        animate={{ opacity: [0.3, 0.7, 0.3], scale: [1, 1.06, 1] }}
+        transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut', delay: 0.6 }}
+        style={{
+          position: 'absolute', inset: 28,
+          borderRadius: '50%',
+          border: '1px solid rgba(124,92,255,0.28)',
+          boxShadow: '0 0 20px rgba(124,92,255,0.12)',
+        }}
+      />
+      {/* Inner ring */}
+      <motion.div
+        animate={{ opacity: [0.5, 1, 0.5], scale: [1, 1.05, 1] }}
+        transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut', delay: 1.2 }}
+        style={{
+          position: 'absolute', inset: 56,
+          borderRadius: '50%',
+          border: '1px solid rgba(124,92,255,0.45)',
+          boxShadow: '0 0 15px rgba(124,92,255,0.2)',
+        }}
+      />
+      {/* Shield center */}
+      <div style={{
+        position: 'absolute', inset: 74,
+        borderRadius: '50%',
+        background: 'var(--violet-dim)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        boxShadow: '0 0 40px rgba(124,92,255,0.3)',
+      }}>
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.25C17.25 22.15 21 17.25 21 12V7L12 2z"
+            stroke="var(--violet)" strokeWidth="1.5" strokeLinejoin="round"/>
+          <path d="M9 12l2 2 4-4" stroke="var(--emerald)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </div>
+    </div>
+  )
+}
+
+/* ── BrandPanel ───────────────────────────────────────────── */
+
+function BrandPanel({ headline1, headline2, tagline }: { headline1: string; headline2: string; tagline: string }) {
+  return (
+    <div style={{
+      flex: '0 0 60%',
+      minHeight: '100dvh',
+      display: 'none',
+      flexDirection: 'column',
+      justifyContent: 'space-between',
+      padding: '48px 56px',
+      position: 'relative',
+      overflow: 'hidden',
+      background: `
+        radial-gradient(ellipse 70% 60% at 30% 40%, rgba(124,92,255,0.2) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 50% at 70% 70%, rgba(0,229,160,0.08) 0%, transparent 60%),
+        var(--bg)
+      `,
+    }}
+    className="auth-brand-panel"
+    >
+      {/* Subtle grid texture */}
+      <div style={{
+        position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0,
+        backgroundImage: 'linear-gradient(var(--app-border) 1px, transparent 1px), linear-gradient(90deg, var(--app-border) 1px, transparent 1px)',
+        backgroundSize: '60px 60px',
+        maskImage: 'radial-gradient(ellipse 80% 80% at 30% 40%, black 0%, transparent 70%)',
+        WebkitMaskImage: 'radial-gradient(ellipse 80% 80% at 30% 40%, black 0%, transparent 70%)',
+      }} />
+
+      {/* Logo */}
+      <motion.div
+        variants={leftItem}
+        initial="hidden"
+        animate="show"
+        style={{ position: 'relative', zIndex: 1 }}
+      >
+        <span style={{
+          fontFamily: 'var(--font-manrope)',
+          fontWeight: 800,
+          fontSize: '1.2rem',
+          letterSpacing: '0.18em',
+          color: 'var(--violet)',
+          textTransform: 'uppercase',
+        }}>
+          NEX
+        </span>
+        <span style={{
+          fontFamily: 'var(--font-manrope)',
+          fontWeight: 800,
+          fontSize: '1.2rem',
+          letterSpacing: '0.18em',
+          color: 'var(--text-2)',
+          textTransform: 'uppercase',
+        }}>
+          VPN
+        </span>
+      </motion.div>
+
+      {/* Center content */}
+      <motion.div
+        variants={leftContent}
+        initial="hidden"
+        animate="show"
+        style={{ position: 'relative', zIndex: 1, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 40 }}
+      >
+        {/* Display text */}
+        <div>
+          <motion.div variants={leftItem}>
+            <h1 style={{
+              fontFamily: 'var(--font-bebas)',
+              fontSize: 'clamp(3.5rem, 6vw, 5.5rem)',
+              lineHeight: 1,
+              letterSpacing: '0.02em',
+              color: 'var(--text)',
+              margin: 0,
+            }}>
+              {headline1}
+            </h1>
+          </motion.div>
+          <motion.div variants={leftItem}>
+            <h1 className="gradient-text" style={{
+              fontFamily: 'var(--font-bebas)',
+              fontSize: 'clamp(3.5rem, 6vw, 5.5rem)',
+              lineHeight: 1,
+              letterSpacing: '0.02em',
+              margin: 0,
+            }}>
+              {headline2}
+            </h1>
+          </motion.div>
+          <motion.p variants={leftItem} style={{
+            fontFamily: 'var(--font-manrope)',
+            fontSize: '15px',
+            color: 'var(--text-2)',
+            marginTop: 16,
+            maxWidth: 340,
+            lineHeight: 1.6,
+          }}>
+            {tagline}
+          </motion.p>
+        </div>
+
+        {/* Security rings visual */}
+        <motion.div variants={leftItem}>
+          <SecurityRings />
+        </motion.div>
+
+        {/* Feature bullets */}
+        <motion.div variants={leftItem} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {['WireGuard Protocol', 'Zero-Log Architecture', 'AI Smart Routing'].map((feat) => (
+            <div key={feat} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{
+                width: 6, height: 6, borderRadius: '50%',
+                background: 'var(--emerald)',
+                boxShadow: '0 0 8px rgba(0,229,160,0.6)',
+                flexShrink: 0,
+              }} />
+              <span style={{
+                fontFamily: 'var(--font-manrope)',
+                fontSize: '14px',
+                color: 'var(--text-2)',
+              }}>
+                {feat}
+              </span>
+            </div>
+          ))}
+        </motion.div>
+      </motion.div>
+
+      {/* Footer trust line */}
+      <motion.p
+        variants={leftItem}
+        initial="hidden"
+        animate="show"
+        style={{
+          position: 'relative', zIndex: 1,
+          fontFamily: 'var(--font-jetbrains)',
+          fontSize: '11px',
+          color: 'var(--text-3)',
+          letterSpacing: '0.06em',
+        }}
+      >
+        Trusted by 50,000+ users worldwide
+      </motion.p>
+    </div>
+  )
+}
+
+/* ── LoginPage ────────────────────────────────────────────── */
 
 export default function LoginPage() {
   const router = useRouter()
   const { login, isLoading, error, clearError } = useAuthStore()
 
-  const [email, setEmail]         = useState('')
-  const [password, setPassword]   = useState('')
-  const [showPw, setShowPw]       = useState(false)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPw, setShowPw] = useState(false)
   const [emailFocus, setEmailFocus] = useState(false)
-  const [pwFocus,    setPwFocus]    = useState(false)
+  const [pwFocus, setPwFocus] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -48,251 +294,251 @@ export default function LoginPage() {
       await login(email, password)
       router.push('/dashboard')
     } catch {
-      // error is already in store state
+      // error handled by store
     }
   }
 
-  const inputBase: React.CSSProperties = {
-    width: '100%',
-    background: 'rgba(22, 32, 48, 0.6)',
-    border: '1px solid rgba(0,212,255,0.12)',
-    borderRadius: 8,
-    padding: '11px 14px',
-    color: 'var(--text-primary)',
-    fontFamily: 'var(--font-outfit)',
-    fontSize: 14,
-    outline: 'none',
-    transition: 'border-color 0.2s, box-shadow 0.2s',
-  }
-
-  const inputFocus: React.CSSProperties = {
-    borderColor: 'rgba(0,212,255,0.5)',
-    boxShadow: '0 0 0 3px rgba(0,212,255,0.08), 0 0 20px rgba(0,212,255,0.06)',
-  }
-
   return (
-    <div style={{ position: 'relative', minHeight: '100vh', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: 'var(--bg-base)' }}>
+    <>
+      <style>{`
+        @media (min-width: 768px) {
+          .auth-brand-panel { display: flex !important; }
+          .auth-mobile-logo { display: none !important; }
+        }
+      `}</style>
 
-      {/* ── Full-screen particle field ── */}
-      <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0 }}>
-        <FloatingParticles />
-      </div>
+      <div style={{
+        display: 'flex',
+        minHeight: '100dvh',
+        background: 'var(--bg)',
+      }}>
+        {/* Left brand panel */}
+        <BrandPanel
+          headline1="SECURE"
+          headline2="YOUR WORLD."
+          tagline="Military-grade encryption with AI-powered server selection. Connect in seconds."
+        />
 
-      {/* ── Radial cyan spotlight ── */}
-      <div className="absolute inset-0 z-0 pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse 70% 60% at 50% 45%, rgba(0,212,255,0.18) 0%, rgba(0,212,255,0.04) 50%, transparent 80%)' }} />
-
-      {/* ── Bottom dark fade ── */}
-      <div className="absolute bottom-0 left-0 right-0 h-1/3 z-0 pointer-events-none"
-        style={{ background: 'linear-gradient(to top, rgba(5,8,13,0.8), transparent)' }} />
-
-      {/* ── Corner accent lines ── */}
-      <svg className="absolute inset-0 w-full h-full z-0 pointer-events-none opacity-20" preserveAspectRatio="none">
-        <line x1="0" y1="0" x2="200" y2="200" stroke="#00D4FF" strokeWidth="0.5" />
-        <line x1="100%" y1="0" x2="calc(100% - 200px)" y2="200" stroke="#00D4FF" strokeWidth="0.5" />
-      </svg>
-
-      {/* ── Glassmorphism card ── */}
-      <motion.div
-        className="relative z-10 w-full mx-4"
-        style={{ maxWidth: 500 }}
-        initial={{ opacity: 0, y: 32, scale: 0.97 }}
-        animate={{ opacity: 1, y: 0,  scale: 1 }}
-        transition={{ duration: 0.55, ease: [0.25, 0.46, 0.45, 0.94] }}
-      >
+        {/* Right form panel */}
         <div style={{
-          background: 'rgba(8, 12, 20, 0.82)',
-          backdropFilter: 'blur(32px)',
-          WebkitBackdropFilter: 'blur(32px)',
-          border: '1px solid rgba(0,212,255,0.22)',
-          borderRadius: 24,
-          boxShadow: '0 0 0 1px rgba(0,212,255,0.06) inset, 0 40px 100px rgba(0,0,0,0.7), 0 0 80px rgba(0,212,255,0.12)',
-          padding: '44px 40px 40px',
-          position: 'relative',
-          overflow: 'hidden',
+          flex: '1 1 40%',
+          minHeight: '100dvh',
+          background: 'var(--surface)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '48px 24px',
+          borderLeft: '1px solid var(--app-border)',
         }}>
-          {/* Top accent bar */}
-          <div style={{
-            position: 'absolute', top: 0, left: '15%', right: '15%', height: 2,
-            background: 'linear-gradient(90deg, transparent, #00D4FF, transparent)',
-            borderRadius: '0 0 4px 4px',
-          }} />
-
-          {/* Logo + heading */}
-          <motion.div className="text-center mb-8" variants={item} initial="hidden" animate="show">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-5"
-              style={{ background: 'rgba(0,212,255,0.08)', border: '1px solid rgba(0,212,255,0.2)' }}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="1.5">
-                <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.25C17.25 22.15 21 17.25 21 12V7L12 2z" />
-              </svg>
-            </div>
-            <h1 className="font-display font-bold" style={{ fontSize: 28, color: 'var(--text-primary)', lineHeight: 1.2 }}>
-              Welcome back.
-            </h1>
-            <p className="font-sans mt-1.5" style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
-              Sign in to{' '}
-              <span style={{ color: 'var(--cyan)', fontWeight: 600 }}>NEX</span>
-              <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>VPN</span>
-            </p>
-          </motion.div>
-
-          {/* Error message */}
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center gap-2 mb-4 px-3 py-2.5 rounded-lg"
-              style={{ background: 'rgba(255,68,85,0.08)', border: '1px solid rgba(255,68,85,0.2)' }}
-            >
-              <AlertCircle size={14} color="#FF4455" />
-              <span style={{ fontSize: 13, color: '#FF4455', fontFamily: 'var(--font-outfit)' }}>{error}</span>
-            </motion.div>
-          )}
-
-          {/* Form */}
-          <motion.form
-            variants={container}
-            initial="hidden"
-            animate="show"
-            onSubmit={handleSubmit}
-            style={{ display: 'flex', flexDirection: 'column', gap: 18 }}
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            style={{ width: '100%', maxWidth: 420 }}
           >
-            {/* Email */}
-            <motion.div variants={item}>
-              <label className="font-data block mb-2"
-                style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
-                Email address
-              </label>
-              <input
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                style={{ ...inputBase, ...(emailFocus ? inputFocus : {}) }}
-                onFocus={() => setEmailFocus(true)}
-                onBlur={() => setEmailFocus(false)}
-                required
-              />
-            </motion.div>
+            {/* Mobile-only logo */}
+            <div className="auth-mobile-logo" style={{ marginBottom: 32, textAlign: 'center' }}>
+              <span style={{ fontFamily: 'var(--font-manrope)', fontWeight: 800, fontSize: '1.25rem', letterSpacing: '0.18em', color: 'var(--violet)', textTransform: 'uppercase' }}>NEX</span>
+              <span style={{ fontFamily: 'var(--font-manrope)', fontWeight: 800, fontSize: '1.25rem', letterSpacing: '0.18em', color: 'var(--text-2)', textTransform: 'uppercase' }}>VPN</span>
+            </div>
 
-            {/* Password */}
-            <motion.div variants={item}>
-              <div className="flex items-center justify-between mb-2">
-                <label className="font-data"
-                  style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
-                  Password
-                </label>
-                <Link href="/forgot-password" className="font-sans" style={{ fontSize: 12, color: 'var(--cyan)' }}>
-                  Forgot?
-                </Link>
-              </div>
-              <div style={{ position: 'relative' }}>
+            {/* Heading */}
+            <div style={{ marginBottom: 32 }}>
+              <h2 style={{
+                fontFamily: 'var(--font-manrope)',
+                fontWeight: 700,
+                fontSize: '1.75rem',
+                color: 'var(--text)',
+                margin: 0,
+                lineHeight: 1.2,
+              }}>
+                Welcome back
+              </h2>
+              <p style={{
+                fontFamily: 'var(--font-manrope)',
+                fontSize: '14px',
+                color: 'var(--text-2)',
+                marginTop: 8,
+              }}>
+                Sign in to continue to your dashboard
+              </p>
+            </div>
+
+            {/* Error banner */}
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                style={{
+                  background: 'var(--rose-dim)',
+                  border: '1px solid var(--rose-border)',
+                  borderRadius: 'var(--r-md)',
+                  padding: '10px 14px',
+                  display: 'flex',
+                  gap: 8,
+                  alignItems: 'center',
+                  color: 'var(--rose)',
+                  fontSize: 13,
+                  fontFamily: 'var(--font-manrope)',
+                  marginBottom: 16,
+                }}
+              >
+                ⚠ {error}
+              </motion.div>
+            )}
+
+            {/* Form */}
+            <motion.form
+              variants={formContainer}
+              initial="hidden"
+              animate="show"
+              onSubmit={handleSubmit}
+              style={{ display: 'flex', flexDirection: 'column', gap: 18 }}
+            >
+              {/* Email */}
+              <motion.div variants={formItem}>
+                <label style={labelStyle}>Email address</label>
                 <input
-                  type={showPw ? 'text' : 'password'}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  style={{ ...inputBase, paddingRight: 44, ...(pwFocus ? inputFocus : {}) }}
-                  onFocus={() => setPwFocus(true)}
-                  onBlur={() => setPwFocus(false)}
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  style={{ ...inputBase, ...(emailFocus ? inputFocused : {}) }}
+                  onFocus={() => setEmailFocus(true)}
+                  onBlur={() => setEmailFocus(false)}
                   required
                 />
-                <button type="button" onClick={() => setShowPw(p => !p)}
-                  style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                  {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </motion.div>
+              </motion.div>
 
-            {/* Sign in button */}
-            <motion.div variants={item}>
-              <motion.button
-                type="submit"
-                disabled={isLoading}
-                whileHover={!isLoading ? { scale: 1.02, boxShadow: '0 0 30px rgba(0,212,255,0.35)' } : {}}
-                whileTap={!isLoading ? { scale: 0.98 } : {}}
-                className="w-full flex items-center justify-center gap-2 font-display font-bold"
-                style={{
-                  background: 'linear-gradient(135deg, #00D4FF 0%, #0099CC 100%)',
-                  color: '#05080D',
-                  border: 'none',
-                  borderRadius: 10,
-                  padding: '13px 20px',
-                  fontSize: 14,
-                  cursor: isLoading ? 'not-allowed' : 'pointer',
-                  letterSpacing: '0.02em',
-                  opacity: isLoading ? 0.75 : 1,
-                }}
-              >
-                {isLoading ? (
-                  <><Loader2 size={15} className="animate-spin" /> Signing in…</>
-                ) : (
-                  <>Sign In <ArrowRight size={15} /></>
-                )}
-              </motion.button>
-            </motion.div>
+              {/* Password */}
+              <motion.div variants={formItem}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <label style={{ ...labelStyle, marginBottom: 0 }}>Password</label>
+                  <Link href="/forgot-password" style={{
+                    fontFamily: 'var(--font-manrope)',
+                    fontSize: '12px',
+                    color: 'var(--violet)',
+                    textDecoration: 'none',
+                  }}>
+                    Forgot password?
+                  </Link>
+                </div>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showPw ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    style={{ ...inputBase, paddingRight: 44, ...(pwFocus ? inputFocused : {}) }}
+                    onFocus={() => setPwFocus(true)}
+                    onBlur={() => setPwFocus(false)}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPw(p => !p)}
+                    style={{
+                      position: 'absolute', right: 12, top: '50%',
+                      transform: 'translateY(-50%)',
+                      color: 'var(--text-2)', background: 'none', border: 'none',
+                      cursor: 'pointer', padding: 0, display: 'flex',
+                    }}
+                    aria-label={showPw ? 'Hide password' : 'Show password'}
+                  >
+                    {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </motion.div>
 
-            {/* Divider */}
-            <motion.div variants={item} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ flex: 1, height: 1, background: 'rgba(0,212,255,0.08)' }} />
-              <span className="font-data" style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.08em' }}>OR</span>
-              <div style={{ flex: 1, height: 1, background: 'rgba(0,212,255,0.08)' }} />
-            </motion.div>
+              {/* Submit */}
+              <motion.div variants={formItem}>
+                <motion.button
+                  type="submit"
+                  disabled={isLoading}
+                  whileHover={!isLoading ? { scale: 1.02, boxShadow: '0 0 30px rgba(124,92,255,0.35)' } : {}}
+                  whileTap={!isLoading ? { scale: 0.98 } : {}}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    background: 'linear-gradient(135deg, var(--violet) 0%, #5B3FD9 100%)',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 'var(--r-md)',
+                    padding: '13px 20px',
+                    fontSize: '14px',
+                    fontFamily: 'var(--font-manrope)',
+                    fontWeight: 600,
+                    cursor: isLoading ? 'not-allowed' : 'pointer',
+                    opacity: isLoading ? 0.75 : 1,
+                    letterSpacing: '0.01em',
+                    transition: 'opacity 0.2s',
+                  }}
+                >
+                  {isLoading
+                    ? <><Loader2 size={15} className="animate-spin" /> Signing in…</>
+                    : <>Sign In <ArrowRight size={15} /></>
+                  }
+                </motion.button>
+              </motion.div>
 
-            {/* Google OAuth */}
-            <motion.div variants={item}>
-              <motion.a
-                href={process.env.NEXT_PUBLIC_GOOGLE_AUTH_URL || 'http://localhost:3001/api/v1/auth/google'}
-                whileHover={{ scale: 1.02, borderColor: 'rgba(0,212,255,0.3)', background: 'rgba(0,212,255,0.04)' }}
-                whileTap={{ scale: 0.98 }}
-                className="w-full flex items-center justify-center gap-2.5 font-sans"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 10,
-                  background: 'rgba(22,32,48,0.4)',
-                  color: 'var(--text-primary)',
-                  border: '1px solid rgba(0,212,255,0.12)',
-                  borderRadius: 10,
-                  padding: '12px 20px',
-                  fontSize: 14,
-                  cursor: 'pointer',
-                  textDecoration: 'none',
-                  transition: 'background 0.2s',
-                }}
-              >
-                <GoogleIcon size={18} /> Continue with Google
-              </motion.a>
-            </motion.div>
-          </motion.form>
+              {/* Divider */}
+              <motion.div variants={formItem} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ flex: 1, height: 1, background: 'var(--app-border)' }} />
+                <span style={{ fontFamily: 'var(--font-jetbrains)', fontSize: '10px', color: 'var(--text-3)', letterSpacing: '0.08em' }}>OR</span>
+                <div style={{ flex: 1, height: 1, background: 'var(--app-border)' }} />
+              </motion.div>
 
-          {/* Footer link */}
-          <motion.p
-            className="text-center font-sans mt-6"
-            style={{ fontSize: 13, color: 'var(--text-muted)' }}
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}
-          >
-            No account?{' '}
-            <Link href="/signup" style={{ color: 'var(--cyan)', fontWeight: 600 }}>
-              Start free →
-            </Link>
-          </motion.p>
+              {/* Google OAuth */}
+              <motion.div variants={formItem}>
+                <motion.a
+                  href={process.env.NEXT_PUBLIC_GOOGLE_AUTH_URL || 'http://localhost:3001/api/v1/auth/google'}
+                  whileHover={{ borderColor: 'var(--app-border-hover)', background: 'var(--elevated)' }}
+                  whileTap={{ scale: 0.98 }}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                    width: '100%',
+                    background: 'var(--elevated)',
+                    color: 'var(--text)',
+                    border: '1px solid var(--app-border)',
+                    borderRadius: 'var(--r-md)',
+                    padding: '12px 20px',
+                    fontSize: '14px',
+                    fontFamily: 'var(--font-manrope)',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    textDecoration: 'none',
+                    transition: 'border-color 0.2s, background 0.2s',
+                  }}
+                >
+                  <GoogleIcon /> Continue with Google
+                </motion.a>
+              </motion.div>
+            </motion.form>
+
+            {/* Footer */}
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.7 }}
+              style={{
+                textAlign: 'center',
+                fontFamily: 'var(--font-manrope)',
+                fontSize: '13px',
+                color: 'var(--text-2)',
+                marginTop: 28,
+              }}
+            >
+              No account?{' '}
+              <Link href="/signup" style={{ color: 'var(--violet)', fontWeight: 600, textDecoration: 'none' }}>
+                Start free →
+              </Link>
+            </motion.p>
+          </motion.div>
         </div>
-
-        {/* Trust strip below card */}
-        <motion.div
-          className="flex items-center justify-center gap-5 mt-5"
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
-        >
-          {['WireGuard', 'Zero Logs', 'Open Source'].map(t => (
-            <span key={t} className="font-data flex items-center gap-1.5"
-              style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.06em' }}>
-              <span style={{ color: 'var(--green)' }}>✓</span> {t}
-            </span>
-          ))}
-        </motion.div>
-      </motion.div>
-    </div>
+      </div>
+    </>
   )
 }

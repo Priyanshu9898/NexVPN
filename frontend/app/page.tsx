@@ -1,57 +1,20 @@
 'use client'
 
 import { useRef, useState, useEffect } from 'react'
-import {
-  motion,
-  useScroll,
-  useTransform,
-  useMotionValue,
-  useSpring,
-} from 'framer-motion'
-import dynamic from 'next/dynamic'
+import { motion } from 'framer-motion'
 import Link from 'next/link'
 
-const Globe = dynamic(() => import('@/components/3d/Globe'), { ssr: false })
-const FloatingParticles = dynamic(
-  () => import('@/components/3d/FloatingParticles'),
-  { ssr: false },
-)
+// ── Animation variants ───────────────────────────────────────────────────────
+const container = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.1 } },
+}
+const item = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' as const } },
+}
 
-// ── Network Graph Data ──────────────────────────────────────────────────────
-const NODES = [
-  { id: 0,  cx: 60,   cy: 80,  r: 3, active: true },
-  { id: 1,  cx: 180,  cy: 140, r: 2, active: false },
-  { id: 2,  cx: 320,  cy: 60,  r: 3, active: true },
-  { id: 3,  cx: 420,  cy: 180, r: 2, active: false },
-  { id: 4,  cx: 540,  cy: 90,  r: 4, active: true },
-  { id: 5,  cx: 660,  cy: 200, r: 2, active: false },
-  { id: 6,  cx: 780,  cy: 70,  r: 3, active: true },
-  { id: 7,  cx: 900,  cy: 160, r: 2, active: false },
-  { id: 8,  cx: 1020, cy: 80,  r: 3, active: true },
-  { id: 9,  cx: 1140, cy: 130, r: 2, active: false },
-  { id: 10, cx: 100,  cy: 300, r: 2, active: false },
-  { id: 11, cx: 250,  cy: 350, r: 3, active: true },
-  { id: 12, cx: 400,  cy: 310, r: 2, active: false },
-  { id: 13, cx: 530,  cy: 380, r: 2, active: false },
-  { id: 14, cx: 680,  cy: 330, r: 3, active: true },
-  { id: 15, cx: 820,  cy: 400, r: 2, active: false },
-  { id: 16, cx: 960,  cy: 300, r: 3, active: true },
-  { id: 17, cx: 1100, cy: 360, r: 2, active: false },
-  { id: 18, cx: 200,  cy: 500, r: 2, active: false },
-  { id: 19, cx: 700,  cy: 520, r: 3, active: true },
-]
-
-const EDGES: [number, number][] = [
-  [0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8], [8, 9],
-  [0, 10], [10, 11], [11, 12], [12, 13], [13, 14], [14, 15], [15, 16], [16, 17],
-  [1, 11], [3, 12], [4, 13], [6, 14], [8, 16], [9, 17],
-  [10, 18], [18, 19], [19, 15], [11, 18],
-  [2, 4], [4, 6], [6, 8],
-]
-
-const ROUTE_POINTS = '60,80 180,140 320,60 540,90 780,70 1020,80 1140,130'
-
-// ── Pricing data ────────────────────────────────────────────────────────────
+// ── Pricing data ─────────────────────────────────────────────────────────────
 interface PricingPlan {
   name: string
   price: string
@@ -76,14 +39,14 @@ const PLANS: PricingPlan[] = [
       'Standard routing',
       'Community support',
     ],
-    cta: 'Start Free',
+    cta: 'Start free',
     ctaHref: '/signup',
   },
   {
     name: 'Pro',
     price: '$8',
     period: '/mo',
-    badge: 'Most Popular',
+    badge: 'Most popular',
     highlight: true,
     features: [
       '5 devices',
@@ -109,42 +72,37 @@ const PLANS: PricingPlan[] = [
       'Custom integrations',
       'Dedicated account manager',
     ],
-    cta: 'Contact Sales',
+    cta: 'Contact sales',
     ctaHref: '/contact',
   },
 ]
 
 // ── Signals data ─────────────────────────────────────────────────────────────
 const SIGNALS = [
-  { label: 'Latency',        value: '8ms',    status: '✓' },
-  { label: 'Server Load',    value: '23%',    status: '✓' },
-  { label: 'IP Reputation',  value: '99/100', status: '✓' },
-  { label: 'ISP Throttling', value: 'None',   status: '✓' },
-  { label: 'Jurisdiction',   value: 'Germany',status: '✓' },
-  { label: 'Score',          value: '94/100', status: '★' },
+  { label: 'Latency',        value: '8ms',     status: '✓', ok: true },
+  { label: 'Server Load',    value: '23%',     status: '✓', ok: true },
+  { label: 'IP Reputation',  value: '99/100',  status: '✓', ok: true },
+  { label: 'ISP Throttling', value: 'None',    status: '✓', ok: true },
+  { label: 'Jurisdiction',   value: 'Germany', status: '✓', ok: true },
+  { label: 'Score',          value: '94/100',  status: '★', ok: false },
+]
+
+// ── Ticker items ──────────────────────────────────────────────────────────────
+const TICKER_ITEMS = [
+  { num: '3,200+', label: 'Servers' },
+  { num: '80+',    label: 'Countries' },
+  { num: '<10ms',  label: 'Added Latency' },
+  { num: '99.97%', label: 'Uptime' },
+  { num: '40+',    label: 'AI Signals' },
+  { num: 'AES-256', label: 'Encrypted' },
+  { num: 'Zero',   label: 'Logs Verified' },
 ]
 
 // ════════════════════════════════════════════════════════════════════════════
 export default function LandingPage() {
   const [typedLines, setTypedLines] = useState<number>(0)
-  const signalsPanelRef = useRef<HTMLDivElement>(null)
+  const terminalRef = useRef<HTMLDivElement>(null)
 
-  // Scroll progress (used for potential future scroll-driven effects)
-  const { scrollYProgress } = useScroll()
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.25], [1, 0])
-
-  // Mouse parallax
-  const mouseX = useMotionValue(0)
-  const mouseY = useMotionValue(0)
-  const springX = useSpring(mouseX, { stiffness: 50, damping: 20 })
-  const springY = useSpring(mouseY, { stiffness: 50, damping: 20 })
-
-  // Parallax derived values — hoisted so hooks aren't called inside JSX
-  const badgeX = useTransform(springX, (v) => v * -0.5)
-  const h1X = useTransform(springX, (v) => v * -0.8)
-  const subtextX = useTransform(springX, (v) => v * -0.3)
-
-  // Signals panel intersection animation
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -154,696 +112,1565 @@ export default function LandingPage() {
             if (line <= SIGNALS.length) {
               setTypedLines(line)
               line++
-              setTimeout(tick, 220)
+              setTimeout(tick, 260)
             }
           }
           tick()
           observer.disconnect()
         }
       },
-      { threshold: 0.3 },
+      { threshold: 0.4 },
     )
-    const el = signalsPanelRef.current
+    const el = terminalRef.current
     if (el) observer.observe(el)
     return () => observer.disconnect()
   }, [])
 
   return (
-    <div
-      className="min-h-screen dot-grid"
-      style={{ background: 'var(--bg-base)', color: 'var(--text-primary)' }}
-    >
-      {/* ── Navbar ──────────────────────────────────────────────────────── */}
+    <div style={{ background: 'var(--bg)', color: 'var(--text)', minHeight: '100dvh' }}>
+
+      {/* ── Skip to content ──────────────────────────────────────────────── */}
+      <a
+        href="#main-content"
+        style={{
+          position: 'absolute',
+          left: '-9999px',
+          top: 'auto',
+          width: '1px',
+          height: '1px',
+          overflow: 'hidden',
+        }}
+        onFocus={(e) => {
+          e.currentTarget.style.position = 'fixed'
+          e.currentTarget.style.left = '16px'
+          e.currentTarget.style.top = '16px'
+          e.currentTarget.style.width = 'auto'
+          e.currentTarget.style.height = 'auto'
+        }}
+        onBlur={(e) => {
+          e.currentTarget.style.position = 'absolute'
+          e.currentTarget.style.left = '-9999px'
+        }}
+      >
+        Skip to content
+      </a>
+
+      {/* ── Navbar ───────────────────────────────────────────────────────── */}
       <motion.nav
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.6 }}
-        className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl border-b"
+        transition={{ duration: 0.5, ease: 'easeOut' }}
+        role="navigation"
+        aria-label="Main navigation"
         style={{
-          background: 'rgba(5,8,13,0.85)',
-          borderColor: 'var(--cyan-border)',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 50,
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          background: 'rgba(7,7,11,0.82)',
+          borderBottom: '1px solid var(--app-border)',
         }}
       >
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="font-display text-xl font-bold tracking-widest select-none">
-            <span style={{ color: 'var(--cyan)' }}>NEX</span>
-            <span style={{ color: 'var(--text-secondary)' }}>VPN</span>
+        <div
+          style={{
+            maxWidth: '1280px',
+            margin: '0 auto',
+            padding: '0 24px',
+            height: '64px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          {/* Logo */}
+          <Link
+            href="/"
+            aria-label="NexVPN home"
+            style={{
+              fontFamily: 'var(--font-manrope)',
+              fontWeight: 800,
+              fontSize: '18px',
+              letterSpacing: '-0.02em',
+              textDecoration: 'none',
+              userSelect: 'none',
+            }}
+          >
+            <span style={{ color: 'var(--violet)' }}>NEX</span>
+            <span style={{ color: 'var(--text-2)' }}>VPN</span>
           </Link>
 
-          <div className="hidden md:flex items-center gap-8">
-            {['Features', 'How it Works', 'Pricing'].map((link) => (
+          {/* Nav links */}
+          <div
+            className="hidden md:flex"
+            style={{ alignItems: 'center', gap: '36px' }}
+          >
+            {[
+              { label: 'Features', href: '#features' },
+              { label: 'How it works', href: '#how-it-works' },
+              { label: 'Pricing', href: '#pricing' },
+            ].map(({ label, href }) => (
               <a
-                key={link}
-                href={`#${link.toLowerCase().replace(/\s+/g, '-')}`}
-                className="font-data text-xs tracking-widest uppercase transition-colors hover:text-white"
-                style={{ color: 'var(--text-secondary)' }}
+                key={label}
+                href={href}
+                style={{
+                  fontFamily: 'var(--font-manrope)',
+                  fontWeight: 500,
+                  fontSize: '13px',
+                  letterSpacing: '0.06em',
+                  textTransform: 'uppercase',
+                  color: 'var(--text-2)',
+                  textDecoration: 'none',
+                  transition: 'color 0.2s',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text)')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-2)')}
               >
-                {link}
+                {label}
               </a>
             ))}
           </div>
 
-          <div className="flex items-center gap-3">
+          {/* CTA buttons */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <Link
               href="/login"
-              className="hidden sm:inline-flex px-4 py-2 text-sm font-data tracking-wider uppercase rounded-md border transition-colors hover:bg-white/5"
-              style={{ borderColor: 'var(--cyan-border)', color: 'var(--text-secondary)' }}
+              className="hidden sm:inline-flex btn-ghost"
+              style={{ fontSize: '13px', padding: '8px 18px' }}
             >
-              Sign In
+              Sign in
             </Link>
-            <Link
-              href="/signup"
-              className="inline-flex px-5 py-2 text-sm font-data tracking-wider uppercase rounded-md font-bold transition-all hover:opacity-90 hover:shadow-lg"
-              style={{
-                background: 'var(--cyan)',
-                color: 'var(--bg-base)',
-                boxShadow: '0 0 20px rgba(0,212,255,0.25)',
-              }}
-            >
-              Get Started
+            <Link href="/signup" className="btn-primary" style={{ fontSize: '13px', padding: '9px 20px' }}>
+              Get started
             </Link>
           </div>
         </div>
       </motion.nav>
 
-      {/* ── Hero ────────────────────────────────────────────────────────── */}
-      <motion.section
-        style={{ opacity: heroOpacity }}
-        className="relative h-screen flex items-center overflow-hidden"
-        onMouseMove={(e) => {
-          const { clientX, clientY, currentTarget } = e
-          const { width, height } = currentTarget.getBoundingClientRect()
-          mouseX.set((clientX / width - 0.5) * 20)
-          mouseY.set((clientY / height - 0.5) * 20)
-        }}
-      >
-        {/* Particle background */}
-        <div className="absolute inset-0">
-          <FloatingParticles />
-        </div>
-
-        {/* 3D Globe — right side, large */}
-        <motion.div
-          className="absolute right-[-5%] top-[-10%] w-[65%] h-[120%]"
-          style={{ x: springX, y: springY }}
+      {/* ── Hero ─────────────────────────────────────────────────────────── */}
+      <main id="main-content">
+        <section
+          className="mesh-bg dot-grid"
+          style={{
+            minHeight: '100dvh',
+            display: 'flex',
+            alignItems: 'center',
+            paddingTop: '64px',
+            position: 'relative',
+          }}
         >
-          <Globe />
-        </motion.div>
+          {/* Subtle bottom fade */}
+          <div
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: '160px',
+              background: 'linear-gradient(to top, var(--bg), transparent)',
+              pointerEvents: 'none',
+            }}
+          />
 
-        {/* Gradient overlays */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#05080D] via-[#05080D]/80 to-transparent pointer-events-none" />
-        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#05080D] to-transparent pointer-events-none" />
-
-        {/* Hero content */}
-        <div className="relative z-10 max-w-7xl mx-auto px-8 w-full pt-16">
-          {/* Badge */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            style={{ x: badgeX }}
+          <div
+            style={{
+              maxWidth: '1280px',
+              margin: '0 auto',
+              padding: '80px 24px',
+              width: '100%',
+              display: 'grid',
+              gridTemplateColumns: '1fr',
+              gap: '64px',
+              alignItems: 'center',
+              position: 'relative',
+              zIndex: 1,
+            }}
+            className="lg:grid-cols-[60fr_40fr]"
           >
-            <span
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border font-data text-xs tracking-widest uppercase"
-              style={{
-                borderColor: 'var(--cyan-border)',
-                color: 'var(--cyan)',
-                background: 'var(--cyan-glow)',
-              }}
+            {/* Left column */}
+            <motion.div
+              variants={container}
+              initial="hidden"
+              animate="show"
+              style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}
             >
-              <span
-                className="w-1.5 h-1.5 rounded-full animate-pulse"
-                style={{ background: 'var(--green)' }}
-              />
-              AI Routing Active — 3,200 Servers Online
-            </span>
-          </motion.div>
+              {/* Badge */}
+              <motion.div variants={item}>
+                <span
+                  className="badge badge-violet"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+                >
+                  <span
+                    style={{
+                      width: '6px',
+                      height: '6px',
+                      borderRadius: '50%',
+                      background: 'var(--emerald)',
+                      flexShrink: 0,
+                      boxShadow: '0 0 6px var(--emerald)',
+                      animation: 'blink 1.4s step-start infinite',
+                    }}
+                  />
+                  ✦ AI Routing — 3,200+ Servers Online
+                </span>
+              </motion.div>
 
-          {/* H1 */}
-          <motion.h1
-            className="font-display font-black mt-6 leading-[0.9] tracking-tight"
-            style={{
-              fontSize: 'clamp(3.5rem, 9vw, 8rem)',
-              x: h1X,
-            }}
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.1 }}
-          >
-            <span style={{ color: 'var(--text-primary)' }}>Privacy,</span>
-            <br />
-            <span className="gradient-text glow-text">Intelligent.</span>
-          </motion.h1>
+              {/* Headline */}
+              <motion.h1 variants={item} style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                <span
+                  className="font-display"
+                  style={{
+                    fontSize: 'clamp(5rem, 12vw, 11rem)',
+                    lineHeight: '0.88',
+                    fontWeight: 400,
+                    letterSpacing: '-0.01em',
+                    color: 'var(--text)',
+                    display: 'block',
+                  }}
+                >
+                  ZERO
+                </span>
+                <span
+                  className="font-display gradient-text"
+                  style={{
+                    fontSize: 'clamp(5rem, 12vw, 11rem)',
+                    lineHeight: '0.88',
+                    fontWeight: 400,
+                    letterSpacing: '-0.01em',
+                    display: 'block',
+                  }}
+                >
+                  TRACE.
+                </span>
+              </motion.h1>
 
-          {/* Subtext */}
-          <motion.p
-            className="font-sans mt-6 max-w-md text-lg leading-relaxed"
-            style={{
-              color: 'var(--text-secondary)',
-              x: subtextX,
-            }}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-          >
-            NexVPN&apos;s AI engine analyzes 40+ signals per second to route your
-            traffic through the fastest, safest exit node — automatically, before
-            you notice.
-          </motion.p>
-
-          {/* CTAs */}
-          <motion.div
-            className="flex flex-wrap gap-4 mt-8"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-          >
-            <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}>
-              <Link
-                href="/signup"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-display font-bold text-sm"
-                style={{ background: 'var(--cyan)', color: 'var(--bg-base)' }}
-              >
-                Start Free — No Card
-                <span>→</span>
-              </Link>
-            </motion.div>
-            <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}>
-              <a
-                href="#how-it-works"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-display font-semibold text-sm border"
+              {/* Body copy */}
+              <motion.p
+                variants={item}
                 style={{
-                  borderColor: 'var(--cyan-border)',
-                  color: 'var(--text-primary)',
+                  fontFamily: 'var(--font-manrope)',
+                  fontSize: '18px',
+                  lineHeight: '1.65',
+                  color: 'var(--text-2)',
+                  maxWidth: '440px',
+                  textWrap: 'pretty',
                 }}
               >
-                See How It Works
-              </a>
+                NexVPN&apos;s AI engine measures 40+ signals per connection — latency,
+                load, IP reputation, jurisdiction — then routes you through the
+                fastest, safest exit node before you notice.
+              </motion.p>
+
+              {/* CTA buttons */}
+              <motion.div
+                variants={item}
+                style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}
+              >
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Link href="/signup" className="btn-primary">
+                    Start free — no card
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </Link>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <a href="#how-it-works" className="btn-ghost">
+                    See how it works
+                  </a>
+                </motion.div>
+              </motion.div>
+
+              {/* Trust strip */}
+              <motion.ul
+                variants={item}
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '20px',
+                  listStyle: 'none',
+                  padding: 0,
+                  margin: 0,
+                }}
+              >
+                {[
+                  'WireGuard Protocol',
+                  'Zero logs',
+                  'Open source',
+                  '30-day refund',
+                ].map((trust) => (
+                  <li
+                    key={trust}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      fontFamily: 'var(--font-manrope)',
+                      fontSize: '13px',
+                      color: 'var(--text-2)',
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                      <path d="M2.5 7.5L5.5 10.5L11.5 4.5" stroke="var(--emerald)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    {trust}
+                  </li>
+                ))}
+              </motion.ul>
             </motion.div>
-          </motion.div>
 
-          {/* Trust strip */}
-          <motion.div
-            className="flex gap-6 mt-8 font-data text-xs"
-            style={{ color: 'var(--text-muted)' }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-          >
-            {['✓ WireGuard Protocol', '✓ Zero Logs', '✓ Open Source', '✓ 30-day refund'].map(
-              (t) => (
-                <span key={t}>{t}</span>
-              ),
-            )}
-          </motion.div>
-        </div>
-      </motion.section>
+            {/* Right column — CSS shield visualization */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.8, delay: 0.3, ease: 'easeOut' }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                position: 'relative',
+                minHeight: '380px',
+              }}
+            >
+              <ShieldViz />
+            </motion.div>
+          </div>
+        </section>
 
-      {/* ── Stats Bar ──────────────────────────────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: 40 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: '-100px' }}
-        transition={{ duration: 0.7 }}
-        className="border-y"
-        style={{ background: 'var(--bg-surface)', borderColor: 'var(--cyan-border)' }}
-      >
-        <div className="max-w-7xl mx-auto px-6 py-10 grid grid-cols-2 md:grid-cols-4 gap-8">
-          {[
-            { value: '3,200+', label: 'Servers' },
-            { value: '80+',    label: 'Countries' },
-            { value: '<10ms',  label: 'Added Latency' },
-            { value: '99.97%', label: 'Uptime' },
-          ].map(({ value, label }) => (
-            <div key={label} className="text-center">
-              <div
-                className="font-display font-bold mb-1"
-                style={{ fontSize: 'clamp(2rem, 4vw, 2.75rem)', color: 'var(--cyan)' }}
+        {/* ── Stats Ticker ───────────────────────────────────────────────── */}
+        <div
+          className="ticker-wrap"
+          style={{
+            background: 'var(--surface)',
+            borderTop: '1px solid var(--app-border)',
+            borderBottom: '1px solid var(--app-border)',
+            padding: '18px 0',
+          }}
+          aria-label="Key statistics"
+        >
+          <div className="ticker-content" aria-hidden="true">
+            {[...TICKER_ITEMS, ...TICKER_ITEMS].map((t, i) => (
+              <span
+                key={i}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '0 40px',
+                  borderRight: '1px solid var(--app-border)',
+                }}
               >
-                {value}
-              </div>
-              <div
-                className="font-data text-xs tracking-widest uppercase"
-                style={{ color: 'var(--text-secondary)' }}
+                <span
+                  className="font-display"
+                  style={{ color: 'var(--violet)', fontSize: '22px', lineHeight: 1 }}
+                >
+                  {t.num}
+                </span>
+                <span
+                  style={{
+                    fontFamily: 'var(--font-manrope)',
+                    fontSize: '13px',
+                    color: 'var(--text-2)',
+                    fontWeight: 500,
+                  }}
+                >
+                  {t.label}
+                </span>
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Features Bento Grid ─────────────────────────────────────────── */}
+        <section
+          id="features"
+          style={{ padding: '120px 0' }}
+          aria-labelledby="features-heading"
+        >
+          <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 24px' }}>
+
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-80px' }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+              style={{ marginBottom: '56px' }}
+            >
+              <h2
+                id="features-heading"
+                style={{
+                  fontFamily: 'var(--font-manrope)',
+                  fontWeight: 800,
+                  fontSize: 'clamp(2.2rem, 4vw, 3.2rem)',
+                  letterSpacing: '-0.03em',
+                  color: 'var(--text)',
+                  marginBottom: '12px',
+                  textWrap: 'balance',
+                }}
               >
-                {label}
-              </div>
-            </div>
-          ))}
-        </div>
-      </motion.div>
+                Built different.
+              </h2>
+              <p
+                style={{
+                  fontFamily: 'var(--font-manrope)',
+                  fontSize: '17px',
+                  color: 'var(--text-2)',
+                  maxWidth: '480px',
+                  lineHeight: '1.6',
+                }}
+              >
+                Every component engineered for performance, privacy, and
+                predictability — nothing borrowed from generic VPN stacks.
+              </p>
+            </motion.div>
 
-      {/* ── Features ───────────────────────────────────────────────────── */}
-      <motion.section
-        id="features"
-        className="py-32 max-w-7xl mx-auto px-6"
-        initial={{ opacity: 0, y: 40 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: '-100px' }}
-        transition={{ duration: 0.7 }}
-      >
-        <div className="mb-16">
-          <h2
-            className="font-display font-bold mb-4"
-            style={{ fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', color: 'var(--text-primary)' }}
-          >
-            Built different.
-          </h2>
-          <p
-            className="text-lg max-w-xl"
-            style={{ fontFamily: 'var(--font-outfit)', color: 'var(--text-secondary)' }}
-          >
-            Every component of NexVPN is engineered for performance, privacy, and predictability.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Card 1: AI Smart Routing */}
-          <motion.div
-            whileHover={{ y: -4, transition: { duration: 0.2 } }}
-            className="panel p-7 flex flex-col gap-4"
-          >
-            <div
-              className="w-11 h-11 rounded-lg flex items-center justify-center"
-              style={{ background: 'rgba(0,212,255,0.1)', border: '1px solid var(--cyan-border)' }}
+            {/* Bento grid */}
+            <motion.div
+              variants={container}
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, margin: '-80px' }}
+              style={{
+                display: 'grid',
+                gridTemplateAreas: `
+                  "main main side1"
+                  "main main side2"
+                  "bot1 bot2 bot3"
+                `,
+                gridTemplateColumns: '1fr 1fr 1fr',
+                gridTemplateRows: 'auto auto auto',
+                gap: '16px',
+              }}
+              className="bento-grid"
             >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <circle cx="5" cy="12" r="2" fill="#00D4FF" fillOpacity="0.9" />
-                <circle cx="19" cy="6" r="2" fill="#00D4FF" fillOpacity="0.9" />
-                <circle cx="19" cy="18" r="2" fill="#00D4FF" fillOpacity="0.9" />
-                <circle cx="12" cy="12" r="2" fill="#00D4FF" />
-                <line x1="7" y1="12" x2="10" y2="12" stroke="#00D4FF" strokeWidth="1.5" strokeOpacity="0.6" />
-                <line x1="14" y1="12" x2="17" y2="7" stroke="#00D4FF" strokeWidth="1.5" strokeOpacity="0.6" />
-                <line x1="14" y1="12" x2="17" y2="17" stroke="#00D4FF" strokeWidth="1.5" strokeOpacity="0.6" />
-              </svg>
-            </div>
-            <h3 className="font-display font-semibold text-lg" style={{ color: 'var(--text-primary)' }}>
-              AI Smart Routing
-            </h3>
-            <p
-              className="text-sm leading-relaxed flex-1"
-              style={{ fontFamily: 'var(--font-outfit)', color: 'var(--text-secondary)' }}
-            >
-              40+ signals analyzed per second. Latency, server load, IP reputation, your usage
-              patterns. The optimal node, automatically.
-            </p>
-            <a href="#how-it-works" className="text-sm font-data transition-colors hover:opacity-70" style={{ color: 'var(--cyan)' }}>
-              learn more →
-            </a>
-          </motion.div>
-
-          {/* Card 2: Zero-Log */}
-          <motion.div
-            whileHover={{ y: -4, transition: { duration: 0.2 } }}
-            className="panel p-7 flex flex-col gap-4"
-          >
-            <div
-              className="w-11 h-11 rounded-lg flex items-center justify-center"
-              style={{ background: 'rgba(0,212,255,0.1)', border: '1px solid var(--cyan-border)' }}
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <rect x="5" y="11" width="14" height="10" rx="2" stroke="#00D4FF" strokeWidth="1.5" strokeOpacity="0.8" />
-                <path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="#00D4FF" strokeWidth="1.5" strokeOpacity="0.8" />
-                <circle cx="12" cy="16" r="1.5" fill="#00D4FF" />
-              </svg>
-            </div>
-            <h3 className="font-display font-semibold text-lg" style={{ color: 'var(--text-primary)' }}>
-              Zero-Log Architecture
-            </h3>
-            <p
-              className="text-sm leading-relaxed flex-1"
-              style={{ fontFamily: 'var(--font-outfit)', color: 'var(--text-secondary)' }}
-            >
-              We cryptographically cannot see your traffic. WireGuard tunneling with post-quantum
-              key exchange. Audited quarterly.
-            </p>
-            <a href="#features" className="text-sm font-data transition-colors hover:opacity-70" style={{ color: 'var(--cyan)' }}>
-              learn more →
-            </a>
-          </motion.div>
-
-          {/* Card 3: Global Network */}
-          <motion.div
-            whileHover={{ y: -4, transition: { duration: 0.2 } }}
-            className="panel p-7 flex flex-col gap-4"
-          >
-            <div
-              className="w-11 h-11 rounded-lg flex items-center justify-center"
-              style={{ background: 'rgba(0,212,255,0.1)', border: '1px solid var(--cyan-border)' }}
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <circle cx="12" cy="12" r="9" stroke="#00D4FF" strokeWidth="1.5" strokeOpacity="0.8" />
-                <path d="M12 3c-2.5 3-4 5.5-4 9s1.5 6 4 9" stroke="#00D4FF" strokeWidth="1" strokeOpacity="0.5" />
-                <path d="M12 3c2.5 3 4 5.5 4 9s-1.5 6-4 9" stroke="#00D4FF" strokeWidth="1" strokeOpacity="0.5" />
-                <line x1="3" y1="9" x2="21" y2="9" stroke="#00D4FF" strokeWidth="1" strokeOpacity="0.4" />
-                <line x1="3" y1="15" x2="21" y2="15" stroke="#00D4FF" strokeWidth="1" strokeOpacity="0.4" />
-              </svg>
-            </div>
-            <h3 className="font-display font-semibold text-lg" style={{ color: 'var(--text-primary)' }}>
-              Global Node Network
-            </h3>
-            <p
-              className="text-sm leading-relaxed flex-1"
-              style={{ fontFamily: 'var(--font-outfit)', color: 'var(--text-secondary)' }}
-            >
-              3,200+ servers across 80 countries. Automatic failover. Dedicated streaming and
-              torrenting optimized nodes.
-            </p>
-            <a href="#features" className="text-sm font-data transition-colors hover:opacity-70" style={{ color: 'var(--cyan)' }}>
-              learn more →
-            </a>
-          </motion.div>
-        </div>
-      </motion.section>
-
-      {/* ── How It Works ───────────────────────────────────────────────── */}
-      <motion.section
-        id="how-it-works"
-        className="py-32"
-        style={{ background: 'var(--bg-surface)' }}
-        initial={{ opacity: 0, y: 40 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: '-100px' }}
-        transition={{ duration: 0.7 }}
-      >
-        <div className="max-w-7xl mx-auto px-6">
-          <h2
-            className="font-display font-bold mb-4"
-            style={{ fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', color: 'var(--text-primary)' }}
-          >
-            The AI sees what you don&apos;t.
-          </h2>
-          <p
-            className="text-lg mb-20 max-w-xl"
-            style={{ fontFamily: 'var(--font-outfit)', color: 'var(--text-secondary)' }}
-          >
-            Three steps. Milliseconds. Invisible to you, overwhelming for observers.
-          </p>
-
-          {/* 3-step flow */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-0 mb-16">
-            {[
-              {
-                step: '01',
-                title: 'You Connect',
-                desc: 'Your device establishes a WireGuard handshake with the NexVPN gateway.',
-              },
-              {
-                step: '02',
-                title: 'AI Analyzes',
-                desc: '40+ signals measured across all available nodes in real-time — latency, load, reputation, jurisdiction.',
-              },
-              {
-                step: '03',
-                title: 'Routed',
-                desc: 'Traffic flows through the optimal exit node. Automatically re-routed if conditions degrade.',
-              },
-            ].map(({ step, title, desc }, i) => (
-              <div key={step} className="relative flex flex-col md:flex-row">
-                <div className="flex-1 px-2 pb-10 md:pb-0">
+              {/* Main card — AI Smart Routing */}
+              <motion.div
+                variants={item}
+                whileHover={{ borderColor: 'rgba(124,92,255,0.35)', boxShadow: '0 0 60px rgba(124,92,255,0.12)' }}
+                className="panel"
+                style={{
+                  gridArea: 'main',
+                  padding: '36px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '20px',
+                  transition: 'border-color 0.3s, box-shadow 0.3s',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
                   <div
-                    className="font-data text-xs tracking-widest uppercase mb-3"
-                    style={{ color: 'var(--text-muted)' }}
+                    style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '12px',
+                      background: 'var(--violet-dim)',
+                      border: '1px solid var(--violet-border)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M12 2L4 6v6c0 5.25 3.5 10.15 8 11.5 4.5-1.35 8-6.25 8-11.5V6L12 2z" stroke="var(--violet)" strokeWidth="1.5" strokeLinejoin="round"/>
+                      <path d="M9 12l2 2 4-4" stroke="var(--emerald)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3
+                      style={{
+                        fontFamily: 'var(--font-manrope)',
+                        fontWeight: 700,
+                        fontSize: '20px',
+                        color: 'var(--text)',
+                        marginBottom: '6px',
+                      }}
+                    >
+                      AI smart routing
+                    </h3>
+                    <p
+                      style={{
+                        fontFamily: 'var(--font-manrope)',
+                        fontSize: '14px',
+                        lineHeight: '1.6',
+                        color: 'var(--text-2)',
+                        maxWidth: '420px',
+                      }}
+                    >
+                      40+ signals analyzed per connection. Latency, server load, IP reputation,
+                      ISP throttling patterns, jurisdiction risk, and your own historical
+                      performance data. The optimal node, automatically.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Mini terminal inside card */}
+                <div
+                  style={{
+                    background: 'var(--bg)',
+                    border: '1px solid var(--app-border)',
+                    borderRadius: '10px',
+                    overflow: 'hidden',
+                    marginTop: '4px',
+                  }}
+                >
+                  <div
+                    style={{
+                      padding: '8px 14px',
+                      borderBottom: '1px solid var(--app-border)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      background: 'rgba(124,92,255,0.04)',
+                    }}
+                  >
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--rose)', opacity: 0.7 }} />
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--amber)', opacity: 0.7 }} />
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--emerald)', opacity: 0.7 }} />
+                    <span
+                      style={{
+                        fontFamily: 'var(--font-jetbrains)',
+                        fontSize: '10px',
+                        color: 'var(--text-2)',
+                        marginLeft: '6px',
+                      }}
+                    >
+                      ai-signal-feed
+                    </span>
+                  </div>
+                  <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {[
+                      { key: 'LATENCY_SCORE', val: '94/100', color: 'var(--emerald)' },
+                      { key: 'LOAD_INDEX',    val: '0.23',   color: 'var(--violet-2)' },
+                      { key: 'IP_REP',        val: 'CLEAN',  color: 'var(--emerald)' },
+                      { key: 'ROUTE_PATH',    val: 'FRA-01', color: 'var(--violet)' },
+                    ].map(({ key, val, color }, idx) => (
+                      <div
+                        key={key}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px',
+                          fontFamily: 'var(--font-jetbrains)',
+                          fontSize: '11px',
+                          animation: `slide-in-up 0.4s ease both`,
+                          animationDelay: `${idx * 0.08}s`,
+                        }}
+                      >
+                        <span style={{ color: 'var(--text-3)', minWidth: '120px' }}>{key}</span>
+                        <span style={{ color, fontWeight: 600 }}>{val}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* side1 — Zero-Log */}
+              <BentoCard
+                gridArea="side1"
+                icon={
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <rect x="5" y="11" width="14" height="10" rx="2" stroke="var(--violet)" strokeWidth="1.5"/>
+                    <path d="M8 11V7a4 4 0 018 0v4" stroke="var(--violet)" strokeWidth="1.5" strokeLinecap="round"/>
+                    <circle cx="12" cy="16" r="1.5" fill="var(--emerald)"/>
+                  </svg>
+                }
+                title="Zero-log architecture"
+                desc="We cryptographically cannot see your traffic. WireGuard with post-quantum key exchange. Audited quarterly by Cure53."
+              />
+
+              {/* side2 — WireGuard */}
+              <BentoCard
+                gridArea="side2"
+                icon={
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <polygon points="12,2 22,8 22,16 12,22 2,16 2,8" stroke="var(--violet)" strokeWidth="1.5" strokeLinejoin="round"/>
+                    <path d="M12 8v8M8 10l4-2 4 2" stroke="var(--violet-2)" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" opacity="0.7"/>
+                  </svg>
+                }
+                title="WireGuard protocol"
+                desc="3× faster handshake than OpenVPN. Minimal kernel-space attack surface. State-of-the-art cryptography by default."
+              />
+
+              {/* bot1 — Global Network */}
+              <BentoCard
+                gridArea="bot1"
+                icon={
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9" stroke="var(--violet)" strokeWidth="1.5"/>
+                    <path d="M12 3c-2.5 3-4 5.5-4 9s1.5 6 4 9" stroke="var(--violet-2)" strokeWidth="1" opacity="0.5"/>
+                    <path d="M12 3c2.5 3 4 5.5 4 9s-1.5 6-4 9" stroke="var(--violet-2)" strokeWidth="1" opacity="0.5"/>
+                    <line x1="3" y1="9" x2="21" y2="9" stroke="var(--violet-2)" strokeWidth="1" opacity="0.4"/>
+                    <line x1="3" y1="15" x2="21" y2="15" stroke="var(--violet-2)" strokeWidth="1" opacity="0.4"/>
+                  </svg>
+                }
+                title="Global network"
+                desc="3,200+ servers across 80 countries. Automatic failover, dedicated streaming and P2P nodes."
+              />
+
+              {/* bot2 — Kill Switch */}
+              <BentoCard
+                gridArea="bot2"
+                icon={
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke="var(--violet)" strokeWidth="1.5" strokeLinecap="round"/>
+                    <circle cx="12" cy="12" r="3" fill="var(--violet-dim)" stroke="var(--violet)" strokeWidth="1.5"/>
+                  </svg>
+                }
+                title="Kill switch"
+                desc="Traffic drops to zero the moment the tunnel fails. Never a naked packet. Supported on all platforms."
+              />
+
+              {/* bot3 — Split Tunneling */}
+              <BentoCard
+                gridArea="bot3"
+                icon={
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M4 12h16M4 12l4-4M4 12l4 4" stroke="var(--violet)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    <rect x="13" y="7" width="7" height="4" rx="2" stroke="var(--emerald)" strokeWidth="1.2"/>
+                    <rect x="13" y="13" width="7" height="4" rx="2" stroke="var(--violet-2)" strokeWidth="1.2"/>
+                  </svg>
+                }
+                title="Split tunneling"
+                desc="Route only specific apps through the VPN. Keep local traffic local, protecting what matters without slowing anything else."
+              />
+            </motion.div>
+          </div>
+        </section>
+
+        {/* ── How It Works ────────────────────────────────────────────────── */}
+        <section
+          id="how-it-works"
+          style={{
+            background: 'var(--surface)',
+            padding: '120px 0',
+          }}
+          aria-labelledby="how-heading"
+        >
+          <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 24px' }}>
+
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-80px' }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+              style={{ marginBottom: '72px' }}
+            >
+              <h2
+                id="how-heading"
+                style={{
+                  fontFamily: 'var(--font-manrope)',
+                  fontWeight: 800,
+                  fontSize: 'clamp(2.2rem, 4vw, 3.2rem)',
+                  letterSpacing: '-0.03em',
+                  color: 'var(--text)',
+                  marginBottom: '12px',
+                  textWrap: 'balance',
+                }}
+              >
+                The AI sees what you don&apos;t.
+              </h2>
+              <p
+                style={{
+                  fontFamily: 'var(--font-manrope)',
+                  fontSize: '17px',
+                  color: 'var(--text-2)',
+                  maxWidth: '460px',
+                  lineHeight: '1.6',
+                }}
+              >
+                Three steps. Milliseconds. Invisible to you, overwhelming to anyone watching.
+              </p>
+            </motion.div>
+
+            {/* 3 steps */}
+            <motion.div
+              variants={container}
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, margin: '-80px' }}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '0',
+                marginBottom: '64px',
+              }}
+              className="how-steps"
+            >
+              {[
+                {
+                  step: '01',
+                  title: 'You connect',
+                  desc: 'Your device establishes a WireGuard handshake with the nearest NexVPN gateway in under 100ms.',
+                },
+                {
+                  step: '02',
+                  title: 'AI analyzes',
+                  desc: 'Simultaneously, 40+ signals are measured across all available nodes — latency, load, reputation, jurisdiction risk.',
+                },
+                {
+                  step: '03',
+                  title: 'Routed instantly',
+                  desc: 'Traffic is forwarded through the optimal exit. Automatically re-routed if conditions degrade, invisibly.',
+                },
+              ].map(({ step, title, desc }, i) => (
+                <motion.div
+                  key={step}
+                  variants={item}
+                  style={{
+                    padding: '32px',
+                    borderRight: i < 2 ? '1px solid var(--app-border)' : 'none',
+                    position: 'relative',
+                  }}
+                >
+                  {/* Connecting arrow */}
+                  {i < 2 && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        right: '-18px',
+                        top: '32px',
+                        zIndex: 2,
+                        width: '36px',
+                        height: '36px',
+                        background: 'var(--surface)',
+                        border: '1px solid var(--app-border)',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                      aria-hidden="true"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                        <path d="M3 7h8M8 4l3 3-3 3" stroke="var(--violet)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
+                  )}
+
+                  <div
+                    style={{
+                      fontFamily: 'var(--font-jetbrains)',
+                      fontSize: '11px',
+                      letterSpacing: '0.1em',
+                      color: 'var(--violet-2)',
+                      marginBottom: '16px',
+                      textTransform: 'uppercase',
+                    }}
                   >
                     Step {step}
                   </div>
                   <h3
-                    className="font-display font-bold text-2xl mb-3"
-                    style={{ color: 'var(--text-primary)' }}
+                    style={{
+                      fontFamily: 'var(--font-manrope)',
+                      fontWeight: 700,
+                      fontSize: '22px',
+                      color: 'var(--text)',
+                      marginBottom: '12px',
+                    }}
                   >
                     {title}
                   </h3>
                   <p
-                    className="text-sm leading-relaxed"
-                    style={{ fontFamily: 'var(--font-outfit)', color: 'var(--text-secondary)' }}
+                    style={{
+                      fontFamily: 'var(--font-manrope)',
+                      fontSize: '14px',
+                      lineHeight: '1.65',
+                      color: 'var(--text-2)',
+                    }}
                   >
                     {desc}
                   </p>
-                </div>
-                {i < 2 && (
-                  <div
-                    className="hidden md:flex items-center px-6 text-2xl"
-                    style={{ color: 'var(--cyan)', opacity: 0.4 }}
-                  >
-                    →
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+                </motion.div>
+              ))}
+            </motion.div>
 
-          {/* Signals analysis panel */}
-          <div
-            ref={signalsPanelRef}
-            className="panel max-w-lg mx-auto p-0 overflow-hidden"
-            style={{ borderColor: 'rgba(0,212,255,0.2)' }}
-          >
-            <div
-              className="flex items-center gap-3 px-5 py-3 border-b"
-              style={{ background: 'rgba(0,212,255,0.06)', borderColor: 'var(--cyan-border)' }}
+            {/* Terminal panel */}
+            <motion.div
+              ref={terminalRef}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-80px' }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+              style={{ maxWidth: '560px', margin: '0 auto' }}
             >
-              <div className="flex gap-1.5">
-                <div className="w-3 h-3 rounded-full" style={{ background: 'var(--red)', opacity: 0.7 }} />
-                <div className="w-3 h-3 rounded-full" style={{ background: 'var(--amber)', opacity: 0.7 }} />
-                <div className="w-3 h-3 rounded-full" style={{ background: 'var(--green)', opacity: 0.7 }} />
-              </div>
-              <span className="font-data text-xs" style={{ color: 'var(--text-secondary)' }}>
-                nexvpn — ai-router
-              </span>
-            </div>
-
-            <div className="p-6 font-data text-xs">
-              <div className="mb-4" style={{ color: 'var(--cyan)' }}>
-                ANALYZING NODE: Frankfurt-DE-01
-              </div>
               <div
-                className="mb-4 font-data text-xs"
-                style={{ color: 'var(--text-muted)', letterSpacing: '0.05em' }}
+                style={{
+                  background: 'var(--bg)',
+                  border: '1px solid var(--app-border)',
+                  borderRadius: 'var(--r-lg)',
+                  overflow: 'hidden',
+                  boxShadow: 'var(--shadow-violet)',
+                }}
               >
-                ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-              </div>
+                {/* Terminal titlebar */}
+                <div
+                  style={{
+                    padding: '10px 16px',
+                    borderBottom: '1px solid var(--app-border)',
+                    background: 'rgba(124,92,255,0.05)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                  }}
+                >
+                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--rose)', opacity: 0.7 }} />
+                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--amber)', opacity: 0.7 }} />
+                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--emerald)', opacity: 0.7 }} />
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-jetbrains)',
+                      fontSize: '11px',
+                      color: 'var(--text-2)',
+                      marginLeft: '8px',
+                    }}
+                  >
+                    nexvpn — ai-router
+                  </span>
+                </div>
 
-              <div className="space-y-2">
-                {SIGNALS.map(({ label, value, status }, idx) => {
-                  const isScore = status === '★'
-                  const visible = idx < typedLines
-                  return (
-                    <div
-                      key={label}
-                      className="flex items-center justify-between transition-all duration-300"
+                {/* Terminal body */}
+                <div style={{ padding: '24px', fontFamily: 'var(--font-jetbrains)', fontSize: '12px' }}>
+                  <div style={{ color: 'var(--violet-2)', marginBottom: '12px' }}>
+                    {'> ANALYZING NODE: Frankfurt-DE-01'}
+                  </div>
+                  <div
+                    style={{
+                      color: 'var(--text-3)',
+                      marginBottom: '16px',
+                      letterSpacing: '0.05em',
+                    }}
+                  >
+                    {'─'.repeat(40)}
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {SIGNALS.map(({ label, value, status, ok }, idx) => (
+                      <div
+                        key={label}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          opacity: idx < typedLines ? 1 : 0,
+                          transform: idx < typedLines ? 'translateY(0)' : 'translateY(6px)',
+                          transition: 'opacity 0.3s ease, transform 0.3s ease',
+                        }}
+                      >
+                        <span style={{ color: 'var(--text-2)', minWidth: '130px' }}>{label}</span>
+                        <span style={{ color: 'var(--text-3)', flex: 1 }}>
+                          {'.'.repeat(Math.max(0, 18 - label.length - value.length + 6))}
+                        </span>
+                        <span
+                          style={{
+                            color: status === '★' ? 'var(--violet)' : 'var(--text)',
+                            fontWeight: 600,
+                            minWidth: '72px',
+                            textAlign: 'right',
+                            paddingRight: '12px',
+                          }}
+                        >
+                          {value}
+                        </span>
+                        <span
+                          style={{
+                            color: ok ? 'var(--emerald)' : 'var(--amber)',
+                            minWidth: '16px',
+                            textAlign: 'center',
+                          }}
+                        >
+                          {status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div
+                    style={{
+                      color: 'var(--text-3)',
+                      margin: '16px 0',
+                      letterSpacing: '0.05em',
+                    }}
+                  >
+                    {'─'.repeat(40)}
+                  </div>
+
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      color: 'var(--violet-2)',
+                      opacity: typedLines >= SIGNALS.length ? 1 : 0,
+                      transition: 'opacity 0.4s ease',
+                    }}
+                  >
+                    <span>{'>'}</span>
+                    <span> ROUTING via Frankfurt-DE-01</span>
+                    <span
                       style={{
-                        opacity: visible ? 1 : 0,
-                        transform: visible ? 'translateY(0)' : 'translateY(4px)',
+                        display: 'inline-block',
+                        width: '7px',
+                        height: '14px',
+                        background: 'var(--violet)',
+                        animation: 'blink 1.2s step-start infinite',
+                        marginLeft: '2px',
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* ── Pricing ─────────────────────────────────────────────────────── */}
+        <section
+          id="pricing"
+          style={{ padding: '120px 0' }}
+          aria-labelledby="pricing-heading"
+        >
+          <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 24px' }}>
+
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-80px' }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+              style={{ marginBottom: '64px' }}
+            >
+              <h2
+                id="pricing-heading"
+                style={{
+                  fontFamily: 'var(--font-manrope)',
+                  fontWeight: 800,
+                  fontSize: 'clamp(2.2rem, 4vw, 3.2rem)',
+                  letterSpacing: '-0.03em',
+                  color: 'var(--text)',
+                  marginBottom: '12px',
+                  textWrap: 'balance',
+                }}
+              >
+                Simple pricing.
+              </h2>
+              <p
+                style={{
+                  fontFamily: 'var(--font-manrope)',
+                  fontSize: '17px',
+                  color: 'var(--text-2)',
+                  maxWidth: '480px',
+                  lineHeight: '1.6',
+                }}
+              >
+                One plan for most people. All plans include WireGuard protection and a 30-day
+                money-back guarantee.
+              </p>
+            </motion.div>
+
+            <motion.div
+              variants={container}
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, margin: '-80px' }}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '20px',
+                alignItems: 'start',
+              }}
+              className="pricing-grid"
+            >
+              {PLANS.map((plan) => (
+                <motion.div
+                  key={plan.name}
+                  variants={item}
+                  whileHover={
+                    plan.highlight
+                      ? { scale: 1.01, transition: { duration: 0.2 } }
+                      : { y: -4, transition: { duration: 0.2 } }
+                  }
+                  className="panel"
+                  style={{
+                    padding: '32px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0',
+                    ...(plan.highlight
+                      ? {
+                          borderColor: 'var(--violet-border)',
+                          boxShadow: '0 0 60px rgba(124,92,255,0.18), 0 0 120px rgba(124,92,255,0.06)',
+                        }
+                      : {}),
+                  }}
+                >
+                  {/* Header */}
+                  <div style={{ marginBottom: '24px' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        marginBottom: '8px',
                       }}
                     >
-                      <span style={{ color: 'var(--text-secondary)' }}>{label}</span>
-                      <span className="flex-1 mx-3" style={{ color: 'var(--text-muted)' }}>
-                        {'.'.repeat(Math.max(0, 28 - label.length - value.length))}
-                      </span>
                       <span
-                        className="mr-3 font-bold"
-                        style={{ color: isScore ? 'var(--cyan)' : 'var(--text-primary)' }}
+                        style={{
+                          fontFamily: 'var(--font-manrope)',
+                          fontWeight: 700,
+                          fontSize: '16px',
+                          color: 'var(--text)',
+                        }}
                       >
-                        {value}
+                        {plan.name}
+                      </span>
+                      {plan.badge && (
+                        <span className="badge badge-violet">{plan.badge}</span>
+                      )}
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '2px' }}>
+                      <span
+                        style={{
+                          fontFamily: 'var(--font-manrope)',
+                          fontWeight: 800,
+                          fontSize: '40px',
+                          letterSpacing: '-0.04em',
+                          color: plan.highlight ? 'var(--violet)' : 'var(--text)',
+                          fontVariantNumeric: 'tabular-nums',
+                        }}
+                      >
+                        {plan.price}
                       </span>
                       <span
                         style={{
-                          color: isScore ? 'var(--amber)' : 'var(--green)',
-                          minWidth: '1rem',
-                          textAlign: 'center',
+                          fontFamily: 'var(--font-manrope)',
+                          fontSize: '14px',
+                          color: 'var(--text-2)',
+                          fontWeight: 500,
                         }}
                       >
-                        {status}
+                        {plan.period}
                       </span>
                     </div>
-                  )
-                })}
-              </div>
+                  </div>
 
-              {typedLines >= SIGNALS.length && (
-                <div className="mt-4 flex items-center gap-1" style={{ color: 'var(--cyan)' }}>
-                  <span>&gt;</span>
-                  <span
-                    className="inline-block w-2 h-4 ml-1"
+                  {/* Divider */}
+                  <div
                     style={{
-                      background: 'var(--cyan)',
-                      animation: 'fade-in 0.5s ease infinite alternate',
+                      height: '1px',
+                      background: plan.highlight ? 'var(--violet-border)' : 'var(--app-border)',
+                      marginBottom: '24px',
                     }}
                   />
-                </div>
-              )}
-            </div>
+
+                  {/* Feature list */}
+                  <ul
+                    style={{
+                      listStyle: 'none',
+                      padding: 0,
+                      margin: 0,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '12px',
+                      flex: 1,
+                      marginBottom: '28px',
+                    }}
+                  >
+                    {plan.features.map((feat) => (
+                      <li
+                        key={feat}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          fontFamily: 'var(--font-manrope)',
+                          fontSize: '14px',
+                          color: 'var(--text-2)',
+                        }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
+                          <path d="M2.5 7.5L5.5 10.5L11.5 4.5" stroke="var(--emerald)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        {feat}
+                      </li>
+                    ))}
+                  </ul>
+
+                  {/* CTA */}
+                  <Link
+                    href={plan.ctaHref}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '12px 20px',
+                      borderRadius: 'var(--r-md)',
+                      fontFamily: 'var(--font-manrope)',
+                      fontWeight: 700,
+                      fontSize: '14px',
+                      textDecoration: 'none',
+                      transition: 'all 0.2s ease',
+                      ...(plan.highlight
+                        ? {
+                            background: 'var(--violet)',
+                            color: '#fff',
+                            boxShadow: '0 0 24px rgba(124,92,255,0.35)',
+                          }
+                        : {
+                            background: 'transparent',
+                            color: 'var(--text)',
+                            border: '1px solid var(--app-border)',
+                          }),
+                    }}
+                    onMouseEnter={(e) => {
+                      if (plan.highlight) {
+                        e.currentTarget.style.background = 'var(--violet-2)'
+                      } else {
+                        e.currentTarget.style.borderColor = 'var(--violet-border)'
+                        e.currentTarget.style.color = 'var(--violet-2)'
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (plan.highlight) {
+                        e.currentTarget.style.background = 'var(--violet)'
+                      } else {
+                        e.currentTarget.style.borderColor = 'var(--app-border)'
+                        e.currentTarget.style.color = 'var(--text)'
+                      }
+                    }}
+                  >
+                    {plan.cta}
+                  </Link>
+                </motion.div>
+              ))}
+            </motion.div>
           </div>
-        </div>
-      </motion.section>
+        </section>
 
-      {/* ── Pricing ─────────────────────────────────────────────────────── */}
-      <motion.section
-        id="pricing"
-        className="py-32 max-w-7xl mx-auto px-6"
-        initial={{ opacity: 0, y: 40 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: '-100px' }}
-        transition={{ duration: 0.7 }}
-      >
-        <h2
-          className="font-display font-bold mb-4"
-          style={{ fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', color: 'var(--text-primary)' }}
+        {/* ── CTA Banner ──────────────────────────────────────────────────── */}
+        <section
+          style={{ background: 'var(--surface)', borderTop: '1px solid var(--app-border)' }}
+          aria-label="Call to action"
         >
-          Simple pricing.
-        </h2>
-        <p
-          className="text-lg mb-16 max-w-xl"
-          style={{ fontFamily: 'var(--font-outfit)', color: 'var(--text-secondary)' }}
-        >
-          One plan for most people. All plans include our core WireGuard protection.
-        </p>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-          {PLANS.map((plan) =>
-            plan.highlight ? (
-              /* Pro card — pulsing glow + scale hover */
-              <motion.div
-                key={plan.name}
-                whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
-                animate={{
-                  boxShadow: [
-                    '0 0 20px rgba(0,212,255,0.2)',
-                    '0 0 40px rgba(0,212,255,0.4)',
-                    '0 0 20px rgba(0,212,255,0.2)',
-                  ],
-                }}
-                transition={{ repeat: Infinity, duration: 2 }}
-                className="panel p-7 flex flex-col gap-5"
-                style={{ borderColor: 'rgba(0,212,255,0.35)' }}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-80px' }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+            style={{
+              maxWidth: '1280px',
+              margin: '0 auto',
+              padding: '96px 24px',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '32px',
+            }}
+          >
+            <h2
+              style={{
+                fontFamily: 'var(--font-manrope)',
+                fontWeight: 800,
+                fontSize: 'clamp(2rem, 5vw, 3.8rem)',
+                letterSpacing: '-0.04em',
+                color: 'var(--text)',
+                textWrap: 'balance',
+                maxWidth: '600px',
+                lineHeight: '1.1',
+              }}
+            >
+              Ready to go{' '}
+              <span className="gradient-text-em">invisible?</span>
+            </h2>
+            <p
+              style={{
+                fontFamily: 'var(--font-manrope)',
+                fontSize: '17px',
+                color: 'var(--text-2)',
+                maxWidth: '400px',
+                lineHeight: '1.6',
+              }}
+            >
+              Free plan, no card required. Upgrade any time.
+            </p>
+            <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+              <Link
+                href="/signup"
+                className="btn-primary"
+                style={{ fontSize: '16px', padding: '14px 36px' }}
               >
-                <PlanCardInner plan={plan} />
-              </motion.div>
-            ) : (
-              <motion.div
-                key={plan.name}
-                whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                className="panel p-7 flex flex-col gap-5"
-              >
-                <PlanCardInner plan={plan} />
-              </motion.div>
-            ),
-          )}
-        </div>
-      </motion.section>
+                Start free
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                  <path d="M4 9h10M10 5l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </Link>
+            </motion.div>
+          </motion.div>
+        </section>
+      </main>
 
-      {/* ── Footer ─────────────────────────────────────────────────────── */}
-      <motion.footer
-        initial={{ opacity: 0, y: 40 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: '-100px' }}
-        transition={{ duration: 0.7 }}
-        className="border-t"
-        style={{ background: 'var(--bg-surface)', borderColor: 'var(--cyan-border)' }}
+      {/* ── Footer ───────────────────────────────────────────────────────── */}
+      <footer
+        style={{
+          background: 'var(--bg)',
+          borderTop: '1px solid var(--app-border)',
+        }}
+        aria-label="Site footer"
       >
-        <div className="max-w-7xl mx-auto px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-6">
-          <Link href="/" className="font-display text-lg font-bold tracking-widest">
-            <span style={{ color: 'var(--cyan)' }}>NEX</span>
-            <span style={{ color: 'var(--text-secondary)' }}>VPN</span>
-          </Link>
+        <div
+          style={{
+            maxWidth: '1280px',
+            margin: '0 auto',
+            padding: '40px 24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '24px',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '20px',
+            }}
+          >
+            <Link
+              href="/"
+              aria-label="NexVPN home"
+              style={{
+                fontFamily: 'var(--font-manrope)',
+                fontWeight: 800,
+                fontSize: '18px',
+                letterSpacing: '-0.02em',
+                textDecoration: 'none',
+              }}
+            >
+              <span style={{ color: 'var(--violet)' }}>NEX</span>
+              <span style={{ color: 'var(--text-2)' }}>VPN</span>
+            </Link>
 
-          <nav className="flex flex-wrap items-center gap-6">
-            {['Features', 'How it Works', 'Pricing', 'Privacy Policy', 'Terms'].map((link) => (
-              <a
-                key={link}
-                href="#"
-                className="font-data text-xs tracking-widest uppercase transition-colors hover:text-white"
-                style={{ color: 'var(--text-muted)' }}
-              >
-                {link}
-              </a>
-            ))}
-          </nav>
+            <nav aria-label="Footer navigation" style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', alignItems: 'center' }}>
+              {[
+                { label: 'Features', href: '#features' },
+                { label: 'How it works', href: '#how-it-works' },
+                { label: 'Pricing', href: '#pricing' },
+                { label: 'Privacy policy', href: '#' },
+                { label: 'Terms of service', href: '#' },
+              ].map(({ label, href }) => (
+                <a
+                  key={label}
+                  href={href}
+                  style={{
+                    fontFamily: 'var(--font-manrope)',
+                    fontSize: '13px',
+                    fontWeight: 500,
+                    color: 'var(--text-2)',
+                    textDecoration: 'none',
+                    transition: 'color 0.2s',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-2)')}
+                >
+                  {label}
+                </a>
+              ))}
+            </nav>
+          </div>
 
-          <p className="font-data text-xs" style={{ color: 'var(--text-muted)' }}>
+          <div
+            style={{
+              height: '1px',
+              background: 'var(--app-border)',
+            }}
+          />
+
+          <p
+            style={{
+              fontFamily: 'var(--font-jetbrains)',
+              fontSize: '11px',
+              color: 'var(--text-3)',
+              letterSpacing: '0.04em',
+            }}
+          >
             © 2026 NexVPN. All rights reserved.
           </p>
         </div>
-      </motion.footer>
+      </footer>
+
+      {/* ── Bento grid responsive styles ─────────────────────────────────── */}
+      <style>{`
+        @media (max-width: 900px) {
+          .bento-grid {
+            grid-template-areas:
+              "main"
+              "side1"
+              "side2"
+              "bot1"
+              "bot2"
+              "bot3" !important;
+            grid-template-columns: 1fr !important;
+          }
+          .how-steps {
+            grid-template-columns: 1fr !important;
+          }
+          .pricing-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+        @media (max-width: 1024px) and (min-width: 901px) {
+          .bento-grid {
+            grid-template-areas:
+              "main main"
+              "side1 side2"
+              "bot1 bot2"
+              "bot3 bot3" !important;
+            grid-template-columns: 1fr 1fr !important;
+          }
+        }
+        @media (max-width: 768px) {
+          .lg\\:grid-cols-\\[60fr_40fr\\] {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
     </div>
   )
 }
 
-// ── Plan Card Inner (shared between highlighted and normal) ──────────────────
-function PlanCardInner({ plan }: { plan: PricingPlan }) {
+// ── Bento card component ─────────────────────────────────────────────────────
+function BentoCard({
+  gridArea,
+  icon,
+  title,
+  desc,
+}: {
+  gridArea: string
+  icon: React.ReactNode
+  title: string
+  desc: string
+}) {
   return (
-    <>
-      <div className="flex items-start justify-between">
-        <div>
+    <motion.div
+      variants={item}
+      whileHover={{ borderColor: 'rgba(124,92,255,0.3)', transition: { duration: 0.2 } }}
+      className="panel"
+      style={{
+        gridArea,
+        padding: '28px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '14px',
+        transition: 'border-color 0.2s',
+      }}
+    >
+      <div
+        style={{
+          width: '44px',
+          height: '44px',
+          borderRadius: '10px',
+          background: 'var(--violet-dim)',
+          border: '1px solid var(--violet-border)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
+        {icon}
+      </div>
+      <h3
+        style={{
+          fontFamily: 'var(--font-manrope)',
+          fontWeight: 700,
+          fontSize: '16px',
+          color: 'var(--text)',
+        }}
+      >
+        {title}
+      </h3>
+      <p
+        style={{
+          fontFamily: 'var(--font-manrope)',
+          fontSize: '13px',
+          lineHeight: '1.65',
+          color: 'var(--text-2)',
+        }}
+      >
+        {desc}
+      </p>
+    </motion.div>
+  )
+}
+
+// ── Shield visualization component ──────────────────────────────────────────
+function ShieldViz() {
+  return (
+    <div
+      style={{
+        position: 'relative',
+        width: '320px',
+        height: '320px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+      aria-hidden="true"
+    >
+      {/* Concentric rings */}
+      {[1, 2, 3].map((ring) => (
+        <div
+          key={ring}
+          style={{
+            position: 'absolute',
+            borderRadius: '50%',
+            border: `1px solid rgba(124,92,255,${0.18 - ring * 0.04})`,
+            width: `${ring * 90}px`,
+            height: `${ring * 90}px`,
+            animation: `pulse-ring ${2 + ring * 0.8}s ease-out ${ring * 0.3}s infinite`,
+          }}
+        />
+      ))}
+
+      {/* Outer glow ring */}
+      <div
+        style={{
+          position: 'absolute',
+          width: '260px',
+          height: '260px',
+          borderRadius: '50%',
+          border: '1px solid var(--violet-border)',
+          boxShadow: '0 0 80px rgba(124,92,255,0.15)',
+          animation: 'spin-slow 20s linear infinite',
+        }}
+      />
+
+      {/* Orbiting dots */}
+      {[0, 72, 144, 216, 288].map((deg, i) => (
+        <div
+          key={deg}
+          style={{
+            position: 'absolute',
+            width: '260px',
+            height: '260px',
+            borderRadius: '50%',
+            animation: `spin-slow ${16 + i * 4}s linear infinite ${i % 2 === 0 ? '' : 'reverse'}`,
+          }}
+        >
           <div
-            className="font-display font-bold text-lg mb-0.5"
-            style={{ color: 'var(--text-primary)' }}
-          >
-            {plan.name}
-          </div>
-          <div className="flex items-baseline gap-0.5">
-            <span
-              className="font-display font-bold"
-              style={{
-                fontSize: '2.25rem',
-                color: plan.highlight ? 'var(--cyan)' : 'var(--text-primary)',
-              }}
-            >
-              {plan.price}
-            </span>
-            <span className="font-data text-sm" style={{ color: 'var(--text-secondary)' }}>
-              {plan.period}
-            </span>
-          </div>
-        </div>
-        {plan.badge && (
-          <span
-            className="font-data text-xs px-2.5 py-1 rounded-full tracking-widest uppercase"
             style={{
-              background: 'rgba(0,212,255,0.12)',
-              border: '1px solid var(--cyan-border)',
-              color: 'var(--cyan)',
+              position: 'absolute',
+              top: '-4px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: i === 0 ? '8px' : '6px',
+              height: i === 0 ? '8px' : '6px',
+              borderRadius: '50%',
+              background: i === 0 ? 'var(--emerald)' : 'var(--violet)',
+              boxShadow: i === 0 ? '0 0 10px var(--emerald)' : '0 0 8px var(--violet)',
             }}
-          >
-            {plan.badge}
-          </span>
-        )}
+          />
+        </div>
+      ))}
+
+      {/* Central shield */}
+      <div
+        style={{
+          position: 'relative',
+          zIndex: 2,
+          width: '80px',
+          height: '80px',
+          background: 'var(--violet-dim)',
+          border: '1px solid var(--violet-border)',
+          borderRadius: '16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 0 40px rgba(124,92,255,0.35)',
+          animation: 'float 4s ease-in-out infinite',
+        }}
+      >
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+          <path
+            d="M20 4L6 10v12c0 8.75 5.83 16.92 14 18.83C28.17 38.92 34 30.75 34 22V10L20 4z"
+            fill="rgba(124,92,255,0.18)"
+            stroke="var(--violet)"
+            strokeWidth="2"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M14.5 20.5l4 4 7.5-7.5"
+            stroke="var(--emerald)"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
       </div>
 
-      <div style={{ height: '1px', background: 'var(--cyan-border)' }} />
-
-      <ul className="flex flex-col gap-2.5 flex-1">
-        {plan.features.map((feat) => (
-          <li
-            key={feat}
-            className="flex items-center gap-2.5 text-sm"
-            style={{ fontFamily: 'var(--font-outfit)', color: 'var(--text-secondary)' }}
-          >
-            <span style={{ color: 'var(--green)', flexShrink: 0 }}>✓</span>
-            {feat}
-          </li>
-        ))}
-      </ul>
-
-      <Link
-        href={plan.ctaHref}
-        className="mt-2 w-full inline-flex items-center justify-center py-3 rounded-md font-display font-bold text-sm transition-all hover:opacity-90"
-        style={
-          plan.highlight
-            ? {
-                background: 'var(--cyan)',
-                color: 'var(--bg-base)',
-                boxShadow: '0 0 20px rgba(0,212,255,0.25)',
-              }
-            : {
-                background: 'transparent',
-                color: 'var(--text-primary)',
-                border: '1px solid var(--cyan-border)',
-              }
-        }
+      {/* Floating stat labels */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '16px',
+          right: '-20px',
+          background: 'var(--elevated)',
+          border: '1px solid var(--app-border)',
+          borderRadius: '8px',
+          padding: '8px 12px',
+          animation: 'float 5s ease-in-out 0.5s infinite',
+        }}
       >
-        {plan.cta}
-      </Link>
-    </>
+        <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: '10px', color: 'var(--text-3)', marginBottom: '2px' }}>
+          LATENCY
+        </div>
+        <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: '14px', color: 'var(--emerald)', fontWeight: 600 }}>
+          8ms
+        </div>
+      </div>
+
+      <div
+        style={{
+          position: 'absolute',
+          bottom: '28px',
+          right: '-12px',
+          background: 'var(--elevated)',
+          border: '1px solid var(--app-border)',
+          borderRadius: '8px',
+          padding: '8px 12px',
+          animation: 'float 6s ease-in-out 1s infinite',
+        }}
+      >
+        <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: '10px', color: 'var(--text-3)', marginBottom: '2px' }}>
+          AI SCORE
+        </div>
+        <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: '14px', color: 'var(--violet-2)', fontWeight: 600 }}>
+          94 / 100
+        </div>
+      </div>
+
+      <div
+        style={{
+          position: 'absolute',
+          bottom: '60px',
+          left: '-20px',
+          background: 'var(--elevated)',
+          border: '1px solid var(--app-border)',
+          borderRadius: '8px',
+          padding: '8px 12px',
+          animation: 'float 4.5s ease-in-out 1.5s infinite',
+        }}
+      >
+        <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: '10px', color: 'var(--text-3)', marginBottom: '2px' }}>
+          LOGS
+        </div>
+        <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: '14px', color: 'var(--text)', fontWeight: 600 }}>
+          0
+        </div>
+      </div>
+    </div>
   )
 }

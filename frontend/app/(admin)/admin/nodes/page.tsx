@@ -1,107 +1,336 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Trash2, PlusCircle } from 'lucide-react'
-import api from '@/lib/api'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Server, Activity, AlertTriangle, BarChart2 } from 'lucide-react'
 
-interface Node { id: string; region: string; city: string; ip: string; status: string; loadPercent: number }
+interface MockNode {
+  id: string
+  name: string
+  ip: string
+  location: string
+  flag: string
+  status: 'online' | 'degraded' | 'offline'
+  loadPercent: number
+  latencyMs: number
+  peers: number
+  uptime: string
+  lastSeen: string
+}
+
+const MOCK_NODES: MockNode[] = [
+  { id: 'n1', name: 'Frankfurt-DE-01', ip: '185.220.101.47', location: 'Frankfurt, Germany',     flag: '🇩🇪', status: 'online',   loadPercent: 23, latencyMs: 8,   peers: 142, uptime: '99.98%', lastSeen: 'just now' },
+  { id: 'n2', name: 'Amsterdam-NL-01', ip: '185.107.56.21',  location: 'Amsterdam, Netherlands', flag: '🇳🇱', status: 'online',   loadPercent: 31, latencyMs: 11,  peers: 98,  uptime: '99.95%', lastSeen: '30s ago' },
+  { id: 'n3', name: 'NewYork-US-01',   ip: '104.21.44.182',  location: 'New York, USA',          flag: '🇺🇸', status: 'online',   loadPercent: 67, latencyMs: 45,  peers: 213, uptime: '99.91%', lastSeen: '45s ago' },
+  { id: 'n4', name: 'London-UK-01',    ip: '51.79.81.129',   location: 'London, UK',             flag: '🇬🇧', status: 'online',   loadPercent: 45, latencyMs: 14,  peers: 87,  uptime: '99.97%', lastSeen: 'just now' },
+  { id: 'n5', name: 'Singapore-SG-01', ip: '139.99.91.144',  location: 'Singapore',              flag: '🇸🇬', status: 'online',   loadPercent: 19, latencyMs: 89,  peers: 56,  uptime: '99.99%', lastSeen: '1m ago' },
+  { id: 'n6', name: 'Tokyo-JP-01',     ip: '103.178.228.11', location: 'Tokyo, Japan',           flag: '🇯🇵', status: 'degraded', loadPercent: 38, latencyMs: 102, peers: 71,  uptime: '98.12%', lastSeen: '2m ago' },
+]
+
+const STATS = [
+  { label: 'Total Nodes', value: '6',   sub: 'exit nodes',      icon: Server,        color: 'var(--violet-2)', dim: 'var(--violet-dim)',  border: 'var(--violet-border)' },
+  { label: 'Online',      value: '5',   sub: 'healthy',         icon: Activity,      color: 'var(--emerald)',  dim: 'var(--emerald-dim)', border: 'var(--emerald-border)' },
+  { label: 'Degraded',    value: '1',   sub: 'needs attention',  icon: AlertTriangle, color: 'var(--amber)',   dim: 'var(--amber-dim)',   border: 'var(--amber-border)' },
+  { label: 'Avg Load',    value: '32%', sub: 'across cluster',  icon: BarChart2,     color: 'var(--violet-2)', dim: 'var(--violet-dim)',  border: 'var(--violet-border)' },
+]
+
+function LoadBar({ pct }: { pct: number }) {
+  const color =
+    pct >= 75 ? 'var(--rose)' : pct >= 50 ? 'var(--amber)' : 'var(--emerald)'
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div
+        style={{
+          width: 60,
+          height: 4,
+          background: 'var(--elevated)',
+          borderRadius: 2,
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          style={{
+            width: `${pct}%`,
+            height: '100%',
+            background: color,
+            borderRadius: 2,
+            transition: 'width 0.6s ease',
+          }}
+        />
+      </div>
+      <span
+        style={{
+          fontFamily: 'var(--font-jetbrains)',
+          fontSize: 11,
+          color,
+          minWidth: 28,
+        }}
+      >
+        {pct}%
+      </span>
+    </div>
+  )
+}
+
+function StatusBadge({ status }: { status: 'online' | 'degraded' | 'offline' }) {
+  if (status === 'online') return <span className="badge badge-emerald">ONLINE</span>
+  if (status === 'degraded') return <span className="badge badge-amber">DEGRADED</span>
+  return <span className="badge badge-rose">OFFLINE</span>
+}
 
 export default function AdminNodesPage() {
-  const [nodes, setNodes] = useState<Node[]>([])
-  const [loading, setLoading] = useState(true)
-  const [adding, setAdding] = useState(false)
-  const [form, setForm] = useState({ region: '', city: '', ip: '' })
-
-  const load = async () => {
-    setLoading(true)
-    try { const res = await api.get('/api/v1/admin/nodes'); setNodes(res.data.nodes) }
-    finally { setLoading(false) }
-  }
-
-  useEffect(() => { load() }, [])
-
-  const toggleStatus = async (node: Node) => {
-    await api.patch(`/api/v1/admin/nodes/${node.id}`, { status: node.status === 'online' ? 'offline' : 'online' })
-    load()
-  }
-
-  const remove = async (id: string) => {
-    if (!confirm('Remove this node?')) return
-    await api.delete(`/api/v1/admin/nodes/${id}`)
-    load()
-  }
-
-  const addNode = async (e: React.FormEvent) => {
-    e.preventDefault()
-    await api.post('/api/v1/admin/nodes', form)
-    setForm({ region: '', city: '', ip: '' })
-    setAdding(false)
-    load()
-  }
-
-  const inputStyle: React.CSSProperties = {
-    background: 'rgba(22,32,48,0.6)', border: '1px solid rgba(0,212,255,0.15)',
-    borderRadius: 6, padding: '8px 12px', color: 'var(--text-primary)',
-    fontFamily: 'var(--font-outfit)', fontSize: 13, outline: 'none',
-  }
-
   return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+    <div style={{ padding: 32, minHeight: '100vh', background: 'var(--bg)' }}>
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: 32,
+        }}
+      >
         <div>
-          <h1 className="font-display font-bold" style={{ fontSize: 24, color: 'var(--text-primary)' }}>Nodes</h1>
-          <p className="font-sans" style={{ color: 'var(--text-secondary)', fontSize: 14 }}>{nodes.length} nodes</p>
+          <h1
+            style={{
+              fontFamily: 'var(--font-manrope)',
+              fontWeight: 800,
+              fontSize: 28,
+              color: 'var(--text)',
+              letterSpacing: '-0.02em',
+            }}
+          >
+            Nodes
+          </h1>
+          <p style={{ color: 'var(--text-2)', fontSize: 14, marginTop: 4 }}>
+            Monitor and manage globally distributed exit nodes
+          </p>
         </div>
-        <button onClick={() => setAdding(v => !v)}
-          style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.3)', borderRadius: 8, padding: '8px 16px', cursor: 'pointer', color: 'var(--cyan)', fontSize: 13, fontFamily: 'var(--font-outfit)' }}>
-          <PlusCircle size={15} /> Add Node
-        </button>
-      </div>
+      </motion.div>
 
-      {adding && (
-        <form onSubmit={addNode} style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
-          <input placeholder="Region (e.g. eu-west)" value={form.region} onChange={e => setForm(f => ({ ...f, region: e.target.value }))} style={inputStyle} required />
-          <input placeholder="City (e.g. Frankfurt)" value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} style={inputStyle} required />
-          <input placeholder="IP Address" value={form.ip} onChange={e => setForm(f => ({ ...f, ip: e.target.value }))} style={inputStyle} required />
-          <button type="submit" style={{ background: 'linear-gradient(135deg,#00D4FF,#0099CC)', color: '#05080D', border: 'none', borderRadius: 8, padding: '8px 16px', cursor: 'pointer', fontWeight: 700, fontFamily: 'var(--font-outfit)', fontSize: 13 }}>
-            Add
-          </button>
-        </form>
-      )}
+      {/* Stats row */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.1 }}
+        style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}
+      >
+        {STATS.map((stat) => (
+          <div
+            key={stat.label}
+            style={{
+              background: 'var(--surface)',
+              border: `1px solid ${stat.border}`,
+              borderRadius: 'var(--r-lg)',
+              padding: '18px 20px',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 14,
+            }}
+          >
+            <div
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 'var(--r-md)',
+                background: stat.dim,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <stat.icon size={17} color={stat.color} />
+            </div>
+            <div>
+              <div
+                style={{
+                  fontFamily: 'var(--font-manrope)',
+                  fontWeight: 800,
+                  fontSize: 24,
+                  color: stat.color,
+                  lineHeight: 1,
+                  marginBottom: 4,
+                }}
+              >
+                {stat.value}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-2)', fontWeight: 500 }}>
+                {stat.label}
+              </div>
+            </div>
+          </div>
+        ))}
+      </motion.div>
 
-      {loading ? <p style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-outfit)' }}>Loading…</p> : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-outfit)', fontSize: 14 }}>
+      {/* Table */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="panel"
+        style={{ overflow: 'hidden' }}
+      >
+        <table className="data-table">
           <thead>
-            <tr style={{ borderBottom: '1px solid rgba(0,212,255,0.1)' }}>
-              {['City', 'Region', 'IP', 'Status', 'Load', 'Actions'].map(h => (
-                <th key={h} className="font-data" style={{ padding: '10px 12px', textAlign: 'left', fontSize: 10, letterSpacing: '0.1em', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{h}</th>
-              ))}
+            <tr>
+              <th>Node / Location</th>
+              <th>IP Address</th>
+              <th>Status</th>
+              <th>Load</th>
+              <th>Latency</th>
+              <th>Active Peers</th>
+              <th>Uptime</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {nodes.map(n => (
-              <tr key={n.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                <td style={{ padding: '12px', color: 'var(--text-primary)' }}>{n.city}</td>
-                <td style={{ padding: '12px', color: 'var(--text-secondary)' }}>{n.region}</td>
-                <td style={{ padding: '12px', color: 'var(--text-muted)', fontFamily: 'monospace', fontSize: 12 }}>{n.ip}</td>
-                <td style={{ padding: '12px' }}>
-                  <button onClick={() => toggleStatus(n)} style={{
-                    padding: '2px 10px', borderRadius: 999, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: 'none',
-                    background: n.status === 'online' ? 'rgba(0,255,157,0.15)' : 'rgba(255,68,85,0.15)',
-                    color: n.status === 'online' ? '#00FF9D' : '#FF4455',
-                  }}>{n.status}</button>
-                </td>
-                <td style={{ padding: '12px', color: 'var(--text-secondary)' }}>{n.loadPercent.toFixed(0)}%</td>
-                <td style={{ padding: '12px' }}>
-                  <button onClick={() => remove(n.id)} style={{ background: 'none', border: '1px solid rgba(255,68,85,0.2)', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', color: '#FF4455' }}>
-                    <Trash2 size={14} />
-                  </button>
-                </td>
-              </tr>
-            ))}
+            <AnimatePresence initial={false}>
+              {MOCK_NODES.map((node, i) => (
+                <motion.tr
+                  key={node.id}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ delay: i * 0.05, duration: 0.25 }}
+                >
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ fontSize: 18, lineHeight: 1 }}>{node.flag}</span>
+                      <div>
+                        <div
+                          style={{
+                            fontFamily: 'var(--font-jetbrains)',
+                            fontSize: 12,
+                            color: 'var(--text)',
+                            fontWeight: 500,
+                            marginBottom: 2,
+                          }}
+                        >
+                          {node.name}
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--text-3)' }}>
+                          {node.location}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span
+                      style={{
+                        fontFamily: 'var(--font-jetbrains)',
+                        fontSize: 11,
+                        color: 'var(--text-3)',
+                      }}
+                    >
+                      {node.ip}
+                    </span>
+                  </td>
+                  <td>
+                    <StatusBadge status={node.status} />
+                  </td>
+                  <td>
+                    <LoadBar pct={node.loadPercent} />
+                  </td>
+                  <td>
+                    <span
+                      style={{
+                        fontFamily: 'var(--font-jetbrains)',
+                        fontSize: 12,
+                        color:
+                          node.latencyMs < 20
+                            ? 'var(--emerald)'
+                            : node.latencyMs < 60
+                            ? 'var(--amber)'
+                            : 'var(--rose)',
+                        fontWeight: 500,
+                      }}
+                    >
+                      {node.latencyMs}ms
+                    </span>
+                  </td>
+                  <td>
+                    <span
+                      style={{
+                        fontFamily: 'var(--font-jetbrains)',
+                        fontSize: 12,
+                        color: 'var(--text)',
+                        fontWeight: 500,
+                      }}
+                    >
+                      {node.peers}
+                    </span>
+                  </td>
+                  <td>
+                    <span
+                      style={{
+                        fontFamily: 'var(--font-jetbrains)',
+                        fontSize: 11,
+                        color:
+                          parseFloat(node.uptime) >= 99.9
+                            ? 'var(--emerald)'
+                            : 'var(--amber)',
+                      }}
+                    >
+                      {node.uptime}
+                    </span>
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button
+                        style={{
+                          padding: '5px 12px',
+                          borderRadius: 'var(--r-sm)',
+                          fontSize: 11,
+                          fontFamily: 'var(--font-manrope)',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          background: 'transparent',
+                          border: '1px solid var(--violet-border)',
+                          color: 'var(--violet-2)',
+                          transition: 'all 0.15s ease',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = 'var(--violet-dim)'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'transparent'
+                        }}
+                      >
+                        View
+                      </button>
+                      <button
+                        style={{
+                          padding: '5px 12px',
+                          borderRadius: 'var(--r-sm)',
+                          fontSize: 11,
+                          fontFamily: 'var(--font-manrope)',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          background: 'transparent',
+                          border: '1px solid var(--amber-border)',
+                          color: 'var(--amber)',
+                          transition: 'all 0.15s ease',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = 'var(--amber-dim)'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'transparent'
+                        }}
+                      >
+                        Restart
+                      </button>
+                    </div>
+                  </td>
+                </motion.tr>
+              ))}
+            </AnimatePresence>
           </tbody>
         </table>
-      )}
+      </motion.div>
     </div>
   )
 }

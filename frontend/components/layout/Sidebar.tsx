@@ -2,28 +2,35 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutGrid, Globe, Activity, Settings, LogOut } from 'lucide-react'
+import { LayoutGrid, Server, Settings, LogOut } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
+import { motion } from 'framer-motion'
 
-const navLinks = [
+const NAV_LINKS = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutGrid },
-  { href: '/servers',   label: 'Servers',   icon: Globe },
-  { href: '/activity',  label: 'Activity',  icon: Activity },
+  { href: '/servers',   label: 'Servers',   icon: Server },
   { href: '/settings',  label: 'Settings',  icon: Settings },
 ]
 
-const IS_CONNECTED = false
+function getInitials(name: string | undefined): string {
+  if (!name) return 'NX'
+  return name
+    .split(' ')
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
+}
 
 export default function Sidebar() {
-  const pathname = usePathname()
-  const router = useRouter()
+  const pathname  = usePathname()
+  const router    = useRouter()
   const { user, logout } = useAuthStore()
 
-  const userEmail    = user?.email ?? 'user@nexvpn.io'
-  const userPlan     = user?.plan  ?? 'FREE'
-  const userInitials = user?.name
-    ? user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
-    : 'NX'
+  const email    = user?.email ?? 'user@nexvpn.io'
+  const plan     = user?.plan  ?? 'FREE'
+  const initials = getInitials(user?.name)
+  const isPro    = plan !== 'FREE'
 
   function handleLogout() {
     logout()
@@ -32,244 +39,221 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="flex flex-col"
       style={{
-        width: '240px',
+        width: 220,
         height: '100%',
-        background: 'var(--bg-surface)',
-        borderRight: '1px solid var(--cyan-border)',
         flexShrink: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        background: 'var(--surface)',
+        borderRight: '1px solid var(--app-border)',
       }}
     >
-      {/* ── Logo ─────────────────────────────────────────── */}
+      {/* ── Logo ─────────────────────────────── */}
       <div
-        className="flex flex-col gap-3"
         style={{
-          padding: '28px 20px 20px',
-          borderBottom: '1px solid var(--cyan-border)',
+          padding: '24px 18px 20px',
+          borderBottom: '1px solid var(--app-border)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
         }}
       >
-        <div className="flex items-center justify-between">
-          <span
-            className="font-display tracking-widest"
-            style={{ fontSize: '18px', fontWeight: 800, letterSpacing: '0.12em' }}
-          >
-            <span style={{ color: 'var(--cyan)' }}>NEX</span>
-            <span style={{ color: 'var(--text-muted)' }}>VPN</span>
-          </span>
-          <span
-            className="font-data"
-            style={{
-              fontSize: '9px',
-              color: 'var(--text-muted)',
-              background: 'var(--bg-overlay)',
-              border: '1px solid var(--cyan-border)',
-              borderRadius: '4px',
-              padding: '2px 6px',
-              letterSpacing: '0.05em',
-            }}
-          >
-            v1.0
-          </span>
-        </div>
-
-        {/* Connection status indicator */}
-        <div className="flex items-center gap-2">
-          <span className="status-dot" style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span
-              style={{
-                display: 'block',
-                width: '6px',
-                height: '6px',
-                borderRadius: '50%',
-                background: IS_CONNECTED ? 'var(--green)' : 'var(--red)',
-                boxShadow: IS_CONNECTED
-                  ? '0 0 6px var(--green)'
-                  : '0 0 6px var(--red)',
-                animation: IS_CONNECTED ? 'pulse-ring 2s ease-out infinite' : undefined,
-                flexShrink: 0,
-              }}
-            />
-          </span>
-          <span
-            className="font-data uppercase"
-            style={{
-              fontSize: '9px',
-              letterSpacing: '0.15em',
-              color: IS_CONNECTED ? 'var(--green)' : 'var(--red)',
-            }}
-          >
-            {IS_CONNECTED ? 'CONNECTED' : 'DISCONNECTED'}
-          </span>
-        </div>
+        <span
+          style={{
+            fontFamily: 'var(--font-manrope)',
+            fontWeight: 800,
+            fontSize: 15,
+            letterSpacing: '0.02em',
+          }}
+        >
+          <span style={{ color: 'var(--violet)' }}>NEX</span>
+          <span style={{ color: 'var(--text-3)' }}>VPN</span>
+        </span>
+        <span
+          style={{
+            fontFamily: 'var(--font-jetbrains)',
+            fontSize: 9,
+            color: 'var(--text-3)',
+            background: 'var(--elevated)',
+            border: '1px solid var(--app-border)',
+            borderRadius: 4,
+            padding: '2px 6px',
+            letterSpacing: '0.04em',
+          }}
+        >
+          v2.0
+        </span>
       </div>
 
-      {/* ── Navigation ───────────────────────────────────── */}
-      <nav className="flex flex-col" style={{ flex: 1, padding: '16px 12px', gap: '2px' }}>
-        {navLinks.map(({ href, label, icon: Icon }) => {
-          const isActive = pathname === href || (href !== '/dashboard' && pathname?.startsWith(href))
+      {/* ── Navigation ───────────────────────── */}
+      <nav
+        style={{
+          flex: 1,
+          padding: '14px 10px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2,
+        }}
+      >
+        {NAV_LINKS.map(({ href, label, icon: Icon }) => {
+          const isActive =
+            href === '/dashboard'
+              ? pathname === '/dashboard'
+              : pathname?.startsWith(href)
+
           return (
-            <Link
-              key={href}
-              href={href}
-              className="flex items-center gap-3 transition-all duration-150 font-display"
-              style={{
-                padding: '10px 12px',
-                borderRadius: '8px',
-                fontSize: '12px',
-                fontWeight: isActive ? 600 : 500,
-                letterSpacing: '0.08em',
-                color: isActive ? 'var(--cyan)' : 'var(--text-secondary)',
-                background: isActive ? 'var(--bg-overlay)' : 'transparent',
-                border: isActive ? '1px solid var(--cyan-border)' : '1px solid transparent',
-                textDecoration: 'none',
-                position: 'relative',
-              }}
-              onMouseEnter={(e) => {
-                if (!isActive) {
-                  const el = e.currentTarget as HTMLAnchorElement
-                  el.style.background = 'var(--bg-overlay)'
-                  el.style.color = 'var(--cyan)'
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isActive) {
-                  const el = e.currentTarget as HTMLAnchorElement
-                  el.style.background = 'transparent'
-                  el.style.color = 'var(--text-secondary)'
-                }
-              }}
-            >
-              {/* Active accent line */}
-              {isActive && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    left: 0,
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    width: '2px',
-                    height: '60%',
-                    background: 'var(--cyan)',
-                    borderRadius: '0 2px 2px 0',
-                    boxShadow: '0 0 8px var(--cyan)',
-                  }}
+            <Link key={href} href={href} style={{ textDecoration: 'none' }}>
+              <motion.div
+                whileHover={isActive ? {} : { x: 2 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '9px 12px',
+                  borderRadius: 'var(--r-md)',
+                  fontSize: 13,
+                  fontWeight: 500,
+                  fontFamily: 'var(--font-manrope)',
+                  letterSpacing: '0.01em',
+                  color: isActive ? 'var(--violet-2)' : 'var(--text-2)',
+                  background: isActive ? 'var(--violet-dim)' : 'transparent',
+                  border: `1px solid ${isActive ? 'var(--violet-border)' : 'transparent'}`,
+                  position: 'relative',
+                  cursor: 'pointer',
+                  transition: 'color 0.15s, background 0.15s, border-color 0.15s',
+                }}
+              >
+                {/* Active accent bar */}
+                {isActive && (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      left: 0,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      width: 2,
+                      height: '60%',
+                      background: 'var(--violet)',
+                      borderRadius: '0 2px 2px 0',
+                      boxShadow: '0 0 8px var(--violet-glow)',
+                    }}
+                  />
+                )}
+                <Icon
+                  size={15}
+                  strokeWidth={isActive ? 2.2 : 1.8}
+                  style={{ color: isActive ? 'var(--violet)' : 'var(--text-2)', flexShrink: 0 }}
                 />
-              )}
-              <Icon
-                size={15}
-                strokeWidth={isActive ? 2.5 : 1.8}
-                style={{ color: isActive ? 'var(--cyan)' : 'var(--text-secondary)', flexShrink: 0 }}
-              />
-              <span style={{ paddingLeft: '2px' }}>{label.toUpperCase()}</span>
+                {label}
+              </motion.div>
             </Link>
           )
         })}
       </nav>
 
-      {/* ── User Info + Logout ───────────────────────────── */}
+      {/* ── User + Logout ─────────────────────── */}
       <div
         style={{
-          padding: '16px 12px',
-          borderTop: '1px solid var(--cyan-border)',
+          padding: '12px 10px',
+          borderTop: '1px solid var(--app-border)',
           display: 'flex',
           flexDirection: 'column',
-          gap: '8px',
+          gap: 4,
         }}
       >
+        {/* User card */}
         <div
-          className="flex items-center gap-3"
           style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
             padding: '10px 12px',
-            borderRadius: '8px',
-            background: 'var(--bg-elevated)',
-            border: '1px solid var(--cyan-border)',
+            borderRadius: 'var(--r-md)',
+            background: 'var(--elevated)',
+            border: '1px solid var(--app-border)',
           }}
         >
-          {/* Avatar initials circle */}
+          {/* Avatar circle */}
           <div
-            className="font-display flex items-center justify-center"
             style={{
-              width: '30px',
-              height: '30px',
+              width: 32,
+              height: 32,
               borderRadius: '50%',
-              background: 'var(--bg-overlay)',
-              border: '1px solid var(--cyan-border)',
-              fontSize: '10px',
+              background: 'var(--violet-dim)',
+              border: '1px solid var(--violet-border)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontFamily: 'var(--font-manrope)',
               fontWeight: 700,
-              color: 'var(--cyan)',
-              letterSpacing: '0.05em',
+              fontSize: 11,
+              color: 'var(--violet-2)',
               flexShrink: 0,
             }}
           >
-            {userInitials}
+            {initials}
           </div>
 
           {/* Email + plan */}
-          <div className="flex flex-col min-w-0" style={{ gap: '2px' }}>
+          <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
             <span
-              className="font-sans"
               style={{
-                fontSize: '11px',
-                color: 'var(--text-secondary)',
+                fontFamily: 'var(--font-manrope)',
+                fontSize: 11,
+                color: 'var(--text-2)',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
-                maxWidth: '110px',
+                maxWidth: 108,
               }}
             >
-              {userEmail}
+              {email}
             </span>
             <span
-              className="font-data uppercase"
-              style={{
-                fontSize: '8px',
-                letterSpacing: '0.15em',
-                color: 'var(--amber)',
-                background: 'rgba(240,165,0,0.08)',
-                border: '1px solid rgba(240,165,0,0.2)',
-                borderRadius: '3px',
-                padding: '1px 5px',
-                alignSelf: 'flex-start',
-              }}
+              className={isPro ? 'badge badge-violet' : 'badge badge-amber'}
+              style={{ fontSize: 8, padding: '1px 6px', borderRadius: 4, alignSelf: 'flex-start' }}
             >
-              {userPlan}
+              {plan}
             </span>
           </div>
         </div>
 
-        {/* Logout button */}
-        <button
+        {/* Logout */}
+        <motion.button
           onClick={handleLogout}
-          className="flex items-center gap-3 font-display transition-all duration-150"
+          whileHover={{ backgroundColor: 'rgba(255,51,102,0.08)' }}
+          transition={{ duration: 0.15 }}
           style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
             width: '100%',
-            padding: '10px 12px',
-            borderRadius: '8px',
-            fontSize: '12px',
+            padding: '9px 12px',
+            borderRadius: 'var(--r-md)',
+            fontFamily: 'var(--font-manrope)',
+            fontSize: 13,
             fontWeight: 500,
-            letterSpacing: '0.08em',
-            color: 'var(--text-muted)',
+            color: 'var(--text-3)',
             background: 'transparent',
             border: '1px solid transparent',
             cursor: 'pointer',
+            textAlign: 'left',
+            transition: 'color 0.15s, border-color 0.15s',
           }}
           onMouseEnter={(e) => {
-            const el = e.currentTarget
-            el.style.background = 'rgba(255,68,85,0.08)'
-            el.style.border = '1px solid rgba(255,68,85,0.25)'
-            el.style.color = 'var(--red)'
+            e.currentTarget.style.color = 'var(--rose)'
+            e.currentTarget.style.borderColor = 'var(--rose-border)'
           }}
           onMouseLeave={(e) => {
-            const el = e.currentTarget
-            el.style.background = 'transparent'
-            el.style.border = '1px solid transparent'
-            el.style.color = 'var(--text-muted)'
+            e.currentTarget.style.color = 'var(--text-3)'
+            e.currentTarget.style.borderColor = 'transparent'
           }}
         >
-          <LogOut size={15} strokeWidth={1.8} style={{ flexShrink: 0 }} />
-          <span>SIGN OUT</span>
-        </button>
+          <LogOut size={14} strokeWidth={1.8} style={{ flexShrink: 0 }} />
+          Sign out
+        </motion.button>
       </div>
     </aside>
   )
