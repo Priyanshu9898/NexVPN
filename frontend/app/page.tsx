@@ -3,6 +3,15 @@
 import { useRef, useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
+import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { useGSAP } from '@gsap/react'
+
+gsap.registerPlugin(ScrollTrigger, useGSAP)
+
+const HeroOrb = dynamic(() => import('@/components/3d/HeroOrb'), { ssr: false })
+const Globe  = dynamic(() => import('@/components/3d/Globe'),   { ssr: false })
 
 // ── Animation variants ───────────────────────────────────────────────────────
 const container = {
@@ -102,6 +111,30 @@ const TICKER_ITEMS = [
 export default function LandingPage() {
   const [typedLines, setTypedLines] = useState<number>(0)
   const terminalRef = useRef<HTMLDivElement>(null)
+  const heroRef     = useRef<HTMLDivElement>(null)
+  const headlineRef = useRef<HTMLHeadingElement>(null)
+
+  /* GSAP hero entrance */
+  useGSAP(() => {
+    const tl = gsap.timeline({ defaults: { ease: 'power3.out' } })
+    tl.from('.hero-badge',   { opacity: 0, y: 20, duration: 0.6 })
+      .from('.hero-line',    { opacity: 0, y: 60, duration: 0.7, stagger: 0.12 }, '-=0.3')
+      .from('.hero-body',    { opacity: 0, y: 24, duration: 0.6 }, '-=0.3')
+      .from('.hero-ctas',    { opacity: 0, y: 16, duration: 0.5 }, '-=0.3')
+      .from('.hero-trust',   { opacity: 0, y: 12, duration: 0.5 }, '-=0.3')
+      .from('.hero-orb',     { opacity: 0, scale: 0.85, duration: 1, ease: 'power2.out' }, '-=0.9')
+
+    /* Scroll-triggered section fades */
+    gsap.utils.toArray<HTMLElement>('.gsap-section').forEach((el) => {
+      gsap.from(el, {
+        scrollTrigger: { trigger: el, start: 'top 82%', toggleActions: 'play none none none' },
+        opacity: 0,
+        y: 40,
+        duration: 0.7,
+        ease: 'power2.out',
+      })
+    })
+  }, { scope: heroRef })
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -127,7 +160,12 @@ export default function LandingPage() {
   }, [])
 
   return (
-    <div style={{ background: 'var(--bg)', color: 'var(--text)', minHeight: '100dvh' }}>
+    <div ref={heroRef} style={{ background: 'var(--bg)', color: 'var(--text)', minHeight: '100dvh' }}>
+      <style>{`
+        @media (min-width: 1024px) { .hero-grid { grid-template-columns: 60fr 40fr !important; } }
+        .hero-orb-wrap { min-height: 340px; }
+        @media (min-width: 1024px) { .hero-orb-wrap { min-height: 520px; height: 100%; } }
+      `}</style>
 
       {/* ── Skip to content ──────────────────────────────────────────────── */}
       <a
@@ -275,6 +313,7 @@ export default function LandingPage() {
           />
 
           <div
+            className="hero-grid"
             style={{
               maxWidth: '1280px',
               margin: '0 auto',
@@ -282,22 +321,16 @@ export default function LandingPage() {
               width: '100%',
               display: 'grid',
               gridTemplateColumns: '1fr',
-              gap: '64px',
+              gap: '48px',
               alignItems: 'center',
               position: 'relative',
               zIndex: 1,
             }}
-            className="lg:grid-cols-[60fr_40fr]"
           >
             {/* Left column */}
-            <motion.div
-              variants={container}
-              initial="hidden"
-              animate="show"
-              style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}
-            >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
               {/* Badge */}
-              <motion.div variants={item}>
+              <div className="hero-badge">
                 <span
                   className="badge badge-violet"
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
@@ -315,12 +348,12 @@ export default function LandingPage() {
                   />
                   ✦ AI Routing — 3,200+ Servers Online
                 </span>
-              </motion.div>
+              </div>
 
               {/* Headline */}
-              <motion.h1 variants={item} style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+              <h1 ref={headlineRef} style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
                 <span
-                  className="font-display"
+                  className="hero-line font-display"
                   style={{
                     fontSize: 'clamp(5rem, 12vw, 11rem)',
                     lineHeight: '0.88',
@@ -333,7 +366,7 @@ export default function LandingPage() {
                   ZERO
                 </span>
                 <span
-                  className="font-display gradient-text"
+                  className="hero-line font-display gradient-text"
                   style={{
                     fontSize: 'clamp(5rem, 12vw, 11rem)',
                     lineHeight: '0.88',
@@ -344,28 +377,27 @@ export default function LandingPage() {
                 >
                   TRACE.
                 </span>
-              </motion.h1>
+              </h1>
 
               {/* Body copy */}
-              <motion.p
-                variants={item}
+              <p
+                className="hero-body"
                 style={{
                   fontFamily: 'var(--font-manrope)',
                   fontSize: '18px',
                   lineHeight: '1.65',
                   color: 'var(--text-2)',
                   maxWidth: '440px',
-                  textWrap: 'pretty',
                 }}
               >
                 NexVPN&apos;s AI engine measures 40+ signals per connection — latency,
                 load, IP reputation, jurisdiction — then routes you through the
                 fastest, safest exit node before you notice.
-              </motion.p>
+              </p>
 
               {/* CTA buttons */}
-              <motion.div
-                variants={item}
+              <div
+                className="hero-ctas"
                 style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}
               >
                 <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
@@ -381,11 +413,11 @@ export default function LandingPage() {
                     See how it works
                   </a>
                 </motion.div>
-              </motion.div>
+              </div>
 
               {/* Trust strip */}
-              <motion.ul
-                variants={item}
+              <ul
+                className="hero-trust"
                 style={{
                   display: 'flex',
                   flexWrap: 'wrap',
@@ -418,24 +450,52 @@ export default function LandingPage() {
                     {trust}
                   </li>
                 ))}
-              </motion.ul>
-            </motion.div>
+              </ul>
+            </div>
 
-            {/* Right column — CSS shield visualization */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.92 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.8, delay: 0.3, ease: 'easeOut' }}
+            {/* Right column — Three.js orb */}
+            <div
+              className="hero-orb hero-orb-wrap"
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 position: 'relative',
-                minHeight: '380px',
               }}
             >
-              <ShieldViz />
-            </motion.div>
+              {/* Outer glow */}
+              <div style={{
+                position: 'absolute',
+                inset: 0,
+                background: 'radial-gradient(ellipse 70% 70% at 50% 50%, rgba(124,92,255,0.12) 0%, transparent 70%)',
+                pointerEvents: 'none',
+              }} />
+              <HeroOrb />
+
+              {/* Floating stat chips */}
+              {[
+                { label: 'AI Score', value: '94/100', color: 'var(--violet-2)', top: '12%', right: '8%' },
+                { label: 'Latency',  value: '8ms',    color: 'var(--emerald)', bottom: '20%', left: '4%' },
+                { label: 'Encrypted', value: 'AES-256', color: 'var(--text-2)', top: '55%', right: '2%' },
+              ].map(({ label, value, color, ...pos }) => (
+                <div
+                  key={label}
+                  style={{
+                    position: 'absolute',
+                    ...pos,
+                    background: 'rgba(14,14,22,0.85)',
+                    backdropFilter: 'blur(12px)',
+                    border: '1px solid var(--app-border)',
+                    borderRadius: 'var(--r-md)',
+                    padding: '8px 14px',
+                    pointerEvents: 'none',
+                  }}
+                >
+                  <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 9, color: 'var(--text-3)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{label}</div>
+                  <div style={{ fontFamily: 'var(--font-manrope)', fontWeight: 700, fontSize: 15, color, marginTop: 2 }}>{value}</div>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 
@@ -1025,6 +1085,9 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* ── Global Network Map ─────────────────────────────────────────── */}
+        <GlobeNetworkSection />
+
         {/* ── Pricing ─────────────────────────────────────────────────────── */}
         <section
           id="pricing"
@@ -1503,6 +1566,203 @@ function BentoCard({
         {desc}
       </p>
     </motion.div>
+  )
+}
+
+// ── Globe Network Section ────────────────────────────────────────────────────
+const NODE_CARDS = [
+  { city: 'Frankfurt', country: 'DE', flag: '🇩🇪', load: 23, ping: 8,   status: 'online'   },
+  { city: 'New York',  country: 'US', flag: '🇺🇸', load: 67, ping: 45,  status: 'online'   },
+  { city: 'Singapore', country: 'SG', flag: '🇸🇬', load: 19, ping: 89,  status: 'online'   },
+  { city: 'Tokyo',     country: 'JP', flag: '🇯🇵', load: 38, ping: 102, status: 'degraded' },
+  { city: 'London',    country: 'UK', flag: '🇬🇧', load: 45, ping: 14,  status: 'online'   },
+]
+
+function GlobeNetworkSection() {
+  const sectionRef = useRef<HTMLDivElement>(null)
+
+  useGSAP(() => {
+    const cards = gsap.utils.toArray<HTMLElement>('.node-card')
+    gsap.from(cards, {
+      scrollTrigger: { trigger: sectionRef.current, start: 'top 65%' },
+      opacity: 0,
+      y: 30,
+      stagger: 0.1,
+      duration: 0.6,
+      ease: 'power2.out',
+    })
+    gsap.from('.globe-wrap', {
+      scrollTrigger: { trigger: sectionRef.current, start: 'top 70%' },
+      opacity: 0,
+      scale: 0.92,
+      duration: 1,
+      ease: 'power2.out',
+    })
+    gsap.from('.globe-heading', {
+      scrollTrigger: { trigger: sectionRef.current, start: 'top 75%' },
+      opacity: 0,
+      y: 30,
+      duration: 0.7,
+      ease: 'power2.out',
+    })
+  }, { scope: sectionRef })
+
+  return (
+    <section
+      ref={sectionRef}
+      id="network"
+      style={{
+        position: 'relative',
+        background: 'var(--bg)',
+        padding: '120px 0 80px',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Background glow */}
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        background: 'radial-gradient(ellipse 80% 60% at 50% 50%, rgba(124,92,255,0.07) 0%, transparent 70%)',
+        pointerEvents: 'none',
+      }} />
+
+      <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 24px' }}>
+
+        {/* Heading */}
+        <div className="globe-heading" style={{ textAlign: 'center', marginBottom: '60px' }}>
+          <span className="badge badge-violet" style={{ marginBottom: '20px', display: 'inline-flex' }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--emerald)', boxShadow: '0 0 6px var(--emerald)', animation: 'blink 1.4s step-start infinite' }} />
+            Live Network — 3,200+ Nodes Online
+          </span>
+          <h2
+            className="font-display"
+            style={{
+              fontSize: 'clamp(3.5rem, 7vw, 7rem)',
+              lineHeight: 0.9,
+              color: 'var(--text)',
+              display: 'block',
+            }}
+          >
+            GLOBAL
+            <br />
+            <span className="gradient-text-em">NETWORK.</span>
+          </h2>
+          <p style={{
+            fontFamily: 'var(--font-manrope)',
+            fontSize: 17,
+            color: 'var(--text-2)',
+            marginTop: 20,
+            maxWidth: 480,
+            margin: '16px auto 0',
+          }}>
+            3,200+ servers across 80 countries. AI selects the fastest, cleanest node for every connection.
+          </p>
+        </div>
+
+        {/* Globe + stat cards */}
+        <div style={{ position: 'relative' }}>
+
+          {/* Globe */}
+          <div
+            className="globe-wrap"
+            style={{
+              height: '560px',
+              borderRadius: 'var(--r-xl)',
+              overflow: 'hidden',
+              border: '1px solid var(--app-border)',
+              background: 'radial-gradient(ellipse 100% 100% at 50% 50%, #0C0C16 0%, var(--bg) 100%)',
+              position: 'relative',
+            }}
+          >
+            <Globe />
+
+            {/* Atmospheric edge glow */}
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              borderRadius: 'inherit',
+              boxShadow: 'inset 0 0 80px rgba(124,92,255,0.08)',
+              pointerEvents: 'none',
+            }} />
+
+            {/* Center overlay label */}
+            <div style={{
+              position: 'absolute',
+              top: 20,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              fontFamily: 'var(--font-jetbrains)',
+              fontSize: 9,
+              letterSpacing: '0.25em',
+              color: 'rgba(124,92,255,0.5)',
+              textTransform: 'uppercase',
+              pointerEvents: 'none',
+            }}>
+              NexVPN · Global Infrastructure
+            </div>
+          </div>
+
+          {/* Server node stat cards — floating below */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+            gap: 12,
+            marginTop: 16,
+          }}>
+            {NODE_CARDS.map((node) => (
+              <motion.div
+                key={node.city}
+                className="node-card panel"
+                whileHover={{ y: -3, borderColor: 'var(--violet-border)' }}
+                style={{ padding: '16px 18px', cursor: 'default' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <span style={{ fontSize: 20 }}>{node.flag}</span>
+                  <span
+                    style={{
+                      width: 7, height: 7, borderRadius: '50%',
+                      background: node.status === 'online' ? 'var(--emerald)' : 'var(--amber)',
+                      boxShadow: node.status === 'online' ? '0 0 8px var(--emerald)' : '0 0 8px var(--amber)',
+                      animation: 'blink 2s step-start infinite',
+                    }}
+                  />
+                </div>
+                <div style={{ fontFamily: 'var(--font-manrope)', fontWeight: 700, fontSize: 13, color: 'var(--text)', marginBottom: 2 }}>
+                  {node.city}
+                </div>
+                <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 9, color: 'var(--text-3)', letterSpacing: '0.08em', marginBottom: 10 }}>
+                  {node.country}
+                </div>
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <div>
+                    <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 8, color: 'var(--text-3)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Load</div>
+                    <div style={{
+                      fontFamily: 'var(--font-manrope)',
+                      fontWeight: 700,
+                      fontSize: 14,
+                      color: node.load < 50 ? 'var(--emerald)' : node.load < 75 ? 'var(--amber)' : 'var(--rose)',
+                    }}>
+                      {node.load}%
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 8, color: 'var(--text-3)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Ping</div>
+                    <div style={{
+                      fontFamily: 'var(--font-manrope)',
+                      fontWeight: 700,
+                      fontSize: 14,
+                      color: node.ping < 20 ? 'var(--emerald)' : node.ping < 60 ? 'var(--amber)' : 'var(--rose)',
+                    }}>
+                      {node.ping}ms
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
   )
 }
 

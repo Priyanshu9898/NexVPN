@@ -59,16 +59,16 @@ function EarthSphere() {
       {/* Layer 2: Wireframe grid overlay */}
       <mesh>
         <sphereGeometry args={[1.82, 32, 32]} />
-        <meshBasicMaterial color="#00D4FF" wireframe transparent opacity={0.06} />
+        <meshBasicMaterial color="#7C5CFF" wireframe transparent opacity={0.07} />
       </mesh>
 
       {/* Layer 3: Atmosphere glow (BackSide, additive-ish) */}
       <mesh>
         <sphereGeometry args={[1.95, 32, 32]} />
         <meshBasicMaterial
-          color="#00D4FF"
+          color="#7C5CFF"
           transparent
-          opacity={0.03}
+          opacity={0.04}
           side={THREE.BackSide}
         />
       </mesh>
@@ -93,15 +93,15 @@ function ServerDots() {
           <mesh>
             <sphereGeometry args={[0.025, 12, 12]} />
             <meshStandardMaterial
-              color="#00D4FF"
-              emissive="#00D4FF"
-              emissiveIntensity={0.5}
+              color={i === 1 ? '#00E5A0' : '#7C5CFF'}
+              emissive={i === 1 ? '#00E5A0' : '#7C5CFF'}
+              emissiveIntensity={0.8}
             />
           </mesh>
           {/* Glow halo */}
           <mesh>
-            <sphereGeometry args={[0.05, 12, 12]} />
-            <meshBasicMaterial color="#00D4FF" transparent opacity={0.12} />
+            <sphereGeometry args={[0.055, 12, 12]} />
+            <meshBasicMaterial color={i === 1 ? '#00E5A0' : '#A688FF'} transparent opacity={0.15} />
           </mesh>
         </group>
       ))}
@@ -171,13 +171,13 @@ function ConnectionArc({
   return (
     <group>
       <mesh ref={tubeRef} geometry={tubeGeometry}>
-        <meshBasicMaterial color="#00D4FF" transparent opacity={0.6} />
+        <meshBasicMaterial color="#7C5CFF" transparent opacity={0.6} />
       </mesh>
 
       {animated && (
         <mesh ref={packetRef}>
           <sphereGeometry args={[0.02, 8, 8]} />
-          <meshBasicMaterial color="#00D4FF" />
+          <meshBasicMaterial color="#A688FF" />
         </mesh>
       )}
     </group>
